@@ -21,23 +21,7 @@ You can start editing the page by modifying `app/page.tsx`. The page auto-update
 
 This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
 
-## Supabase
-
-1) Create a Supabase project and copy keys from the dashboard.
-
-2) Create a local env file:
-
-```bash
-copy .env.example .env.local
-```
-
-3) Fill in:
-
-- `NEXT_PUBLIC_SUPABASE_URL`
-- `NEXT_PUBLIC_SUPABASE_ANON_KEY`
-- `SUPABASE_SERVICE_ROLE_KEY` (server-only)
-
-### Usage
+## Supabase usage
 
 - Browser/client components:
   - `import { supabaseBrowser } from "@/lib/supabase/browser"`
