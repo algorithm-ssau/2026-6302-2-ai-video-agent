@@ -1,8 +1,14 @@
-import { clerkMiddleware } from "@clerk/nextjs/server"
+import { clerkMiddleware, createRouteMatcher } from "@clerk/nextjs/server"
 
-export default clerkMiddleware()
+const isProtectedRoute = createRouteMatcher(["/dashboard(.*)", "/api/sync-user"])
 
-// Protect routes (and enable Clerk to handle its auth endpoints)
+export default clerkMiddleware(async (auth, req) => {
+  if (isProtectedRoute(req)) {
+    await auth.protect()
+  }
+})
+
+// Enable Clerk to handle its auth endpoints
 export const config = {
   matcher: ["/((?!.*\\..*|_next).*)", "/", "/(api|trpc)(.*)"],
 }
