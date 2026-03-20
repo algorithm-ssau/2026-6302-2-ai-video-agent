@@ -29,7 +29,7 @@ export async function POST(request: Request) {
         name: name ?? null,
         user_id: clerkUserId,
       },
-      { onConflict: "email" },
+      { onConflict: "user_id" },
     )
 
   if (error) {
