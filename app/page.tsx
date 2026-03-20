@@ -1,5 +1,6 @@
 import Link from "next/link";
 import React from "react";
+import { Show, UserButton } from "@clerk/nextjs";
 
 // Встроенные SVG-иконки, чтобы не требовались внешние библиотеки (например, lucide-react)
 const ZapIcon = (props: React.SVGProps<SVGSVGElement>) => (
@@ -62,12 +63,19 @@ export default function Home() {
             <Link href="#pricing" className="hover:text-white transition-colors">Тарифы</Link>
           </nav>
           <div className="flex items-center gap-4">
-            <Link href="/login" className="text-sm font-medium hover:text-white transition-colors hidden sm:block">
-              Войти
-            </Link>
-            <Link href="/signup" className="bg-purple-600 hover:bg-purple-500 text-white text-sm font-medium px-4 py-2 rounded-full transition-all">
-              Начать бесплатно
-            </Link>
+            <Show when="signed-out">
+              <>
+                <Link href="/sign-in" className="text-sm font-medium hover:text-white transition-colors hidden sm:block">
+                  Войти
+                </Link>
+                <Link href="/sign-up" className="bg-purple-600 hover:bg-purple-500 text-white text-sm font-medium px-4 py-2 rounded-full transition-all">
+                  Начать бесплатно
+                </Link>
+              </>
+            </Show>
+            <Show when="signed-in">
+              <UserButton />
+            </Show>
           </div>
         </div>
       </header>
