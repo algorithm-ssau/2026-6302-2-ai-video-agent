@@ -1,6 +1,7 @@
 import Link from "next/link";
 import React from "react";
-import { Show, UserButton } from "@clerk/nextjs";
+import { Show, UserButton, SignInButton } from "@clerk/nextjs";
+
 
 // Встроенные SVG-иконки, чтобы не требовались внешние библиотеки (например, lucide-react)
 const ZapIcon = (props: React.SVGProps<SVGSVGElement>) => (
@@ -74,7 +75,15 @@ export default function Home() {
               </>
             </Show>
             <Show when="signed-in">
-              <UserButton />
+            <>
+                <Link
+                  href="/dashboard"
+                  className="text-sm font-medium hover:text-white transition-colors hidden sm:block"
+                >
+                  Дашборд
+                </Link>
+                <UserButton />
+              </>
             </Show>
           </div>
         </div>
@@ -106,10 +115,23 @@ export default function Home() {
             </p>
 
             <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
-              <Link href="/dashboard" className="w-full sm:w-auto flex items-center justify-center gap-2 bg-purple-600 hover:bg-purple-500 text-white px-8 py-4 rounded-full font-semibold text-lg transition-all hover:scale-105 active:scale-95 shadow-[0_0_40px_-10px_rgba(168,85,247,0.5)]">
-                Создать видео
-                <ArrowRightIcon className="w-5 h-5" />
-              </Link>
+            <Show when="signed-in">
+                <Link
+                  href="/dashboard"
+                  className="w-full sm:w-auto flex items-center justify-center gap-2 bg-purple-600 hover:bg-purple-500 text-white px-8 py-4 rounded-full font-semibold text-lg transition-all hover:scale-105 active:scale-95 shadow-[0_0_40px_-10px_rgba(168,85,247,0.5)]"
+                >
+                  Перейти в панель управления
+                  <ArrowRightIcon className="w-5 h-5" />
+                </Link>
+              </Show>
+              <Show when="signed-out">
+              <SignInButton mode="modal">
+                  <button className="w-full sm:w-auto flex items-center justify-center gap-2 bg-purple-600 hover:bg-purple-500 text-white px-8 py-4 rounded-full font-semibold text-lg transition-all hover:scale-105 active:scale-95 shadow-[0_0_40px_-10px_rgba(168,85,247,0.5)]">
+                    Создать видео
+                    <ArrowRightIcon className="w-5 h-5" />
+                  </button>
+                </SignInButton>
+              </Show>
               <Link href="#demo" className="w-full sm:w-auto flex items-center justify-center gap-2 bg-slate-800 hover:bg-slate-700 text-white px-8 py-4 rounded-full font-semibold text-lg transition-all">
                 Смотреть демо
                 <PlaySquareIcon className="w-5 h-5 text-slate-400" />

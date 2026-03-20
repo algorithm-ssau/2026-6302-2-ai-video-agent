@@ -21,24 +21,6 @@ You can start editing the page by modifying `app/page.tsx`. The page auto-update
 
 This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
 
-## Supabase usage
-
-- Browser/client components:
-  - `import { supabaseBrowser } from "@/lib/supabase/browser"`
-- Server components / route handlers:
-  - `import { supabaseServer } from "@/lib/supabase/server"`
-- Admin/server-only tasks (service role):
-  - `import { supabaseAdmin } from "@/lib/supabase/admin"`
-
-## Clerk authentication
-
-- Uses Clerk `SignIn` and `SignUp` pages at:
-  - `/sign-in`
-  - `/sign-up`
-- Env vars (see `.env.example`):
-  - `NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY`
-  - `CLERK_SECRET_KEY`
-
 ## Learn More
 
 To learn more about Next.js, take a look at the following resources:
