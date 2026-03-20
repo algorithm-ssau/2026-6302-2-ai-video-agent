@@ -13,23 +13,8 @@ export default function DashboardPage() {
 
     const run = async () => {
       try {
-        const email = user.primaryEmailAddress?.emailAddress || undefined
-
-        if (!email) {
-          setError(
-            "У вашего аккаунта не указан email, поэтому профиль не может быть сохранён в базе данных."
-          )
-          return
-        }
-
         const res = await fetch("/api/sync-user", {
           method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            id: user.id,
-            email,
-            name: user.fullName,
-          }),
         })
 
         if (!res.ok) {
