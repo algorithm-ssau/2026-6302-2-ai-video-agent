@@ -1,37 +1,107 @@
 # 2026-6302-2-ai-video-agent
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+Сервис с AI-агентом для генерации видео и автоматического выкладывания на площадки — фронтенд (Next.js).
 
-## Getting Started
+> Краткое описание продукта: веб-интерфейс для взаимодействия с AI-агентом, который генерирует видео по запросам и публикует их на целевые платформы (плейсхолдеры для бекенда и интеграций).
 
-First, run the development server:
+---
+
+## Быстрые ссылки
+- **Файл проекта:** [package.json](package.json)
+- **Вход в приложение:** [app/page.tsx](app/page.tsx)
+
+---
+
+## Команда
+| # | Участник | Роль |
+|---|-----------------------|-------------------------|
+| 1 | Хафизов Роман        | Frontend / UI (Next.js) |
+| 2 | Мрясов Станислав     | Frontend / Компоненты   |
+| 3 | Бурганов Рафаэль     | Frontend / Интеграции   |
+| 4 | Халитов Илья         | Frontend / Авторизация  |
+| 5 | Кудряшов Кирилл      | Frontend / Тесты & Docs |
+
+---
+
+## Оглавление
+- **Описание продукта** — что делает агент и какие задачи решает
+- **Стек технологий** — перечисление используемых технологий
+- **Структура проекта** — где что лежит
+- **Запуск локально** — команды для разработки
+- **Архитектура** — высокоуровневая схема взаимодействия компонентов
+- **Вклад** — как вносить изменения
+
+---
+
+## Подробное описание
+Проект — фронтенд на Next.js (App Router), реализует интерфейс для создания заданий генерации видео, просмотра результатов и управления публикацией. Бекенд и интеграции с платформами (YouTube, VK, Telegram и др.) планируются отдельно.
+
+## Текущий статус
+- Реализован фронтенд (UI, страницы, базовая навигация)
+- Бекенд и интеграции — в планах (MVP: генерация видео → публикация)
+
+---
+
+## Стек технологий
+- Next.js (App Router)
+- React, TypeScript
+- Tailwind / CSS (проект содержит globals.css)
+- Supabase (в `lib/supabase` есть заготовки)
+
+---
+
+## Структура проекта (обзор)
+app/                    # Next.js приложение (страницы, API-роуты)
+	├─ api/                # API-роуты (внутренние)
+	├─ dashboard/          # страница дашборда
+	├─ sign-in/            # страницы авторизации
+	└─ page.tsx            # корневая страница
+components/              # UI-компоненты и примитивы
+lib/                     # утилиты и интеграции (supabase, env и т.д.)
+public/                  # статические ассеты
+
+---
+
+## Запуск локально
+1) Установите зависимости и запустите dev-сервер:
 
 ```bash
+npm install
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+2) Откройте приложение в браузере: http://localhost:3000
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+Примечания:
+- Если вы используете `pnpm` или `yarn`, замените команды соответственно.
+- Конфигурация окружения и секреты будут добавлены по мере появления бекенда.
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+---
 
-## Learn More
+## Архитектура (высокоуровневая)
+Пользователь → Frontend (Next.js UI) → Backend (агент, менеджер задач) → Генератор видео → Сервис публикаций → Платформы
 
-To learn more about Next.js, take a look at the following resources:
+Frontend отвечает за создание задания, визуализацию статуса и просмотр результатов; агент и генерация видео находятся в бекенде (планируется).
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+---
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+## Пример рабочего процесса (MVP)
+1. Пользователь создаёт задание в UI (текстовый промпт, настройки).
+2. Frontend отправляет задание в Backend (API).
+3. Агент генерирует видео и хранит результат (S3 / storage).
+4. Пользователь подтверждает публикацию → Backend публикует на площадках.
 
-## Deploy on Vercel
+---
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+## Как работать
+- Создавайте feature-ветки по шаблону `feature/<short-desc>`.
+- Открывайте PR в основной репозиторий с описанием изменений и скриншотами.
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+---
+
+## Следующие шаги 
+- Добавить `prd/prd.md` с описанием продукта и требованиями.
+- Спроектировать backend (agent, queue, storage) и добавить в репозиторий `backend/`.
+
+---
+
+
