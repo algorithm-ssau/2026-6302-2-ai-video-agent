@@ -33,7 +33,7 @@ export default function DashboardPage() {
 
   if (!isLoaded) {
     return (
-      <main className="min-h-screen flex items-center justify-center bg-slate-950 text-slate-50">
+      <main className="min-h-screen flex items-center justify-center">
         <p>Загрузка...</p>
       </main>
     )
@@ -41,31 +41,31 @@ export default function DashboardPage() {
 
   if (!user) {
     return (
-      <main className="min-h-screen flex items-center justify-center bg-slate-950 text-slate-50">
+      <main className="min-h-screen flex items-center justify-center">
         <p>Чтобы открыть панель управления, войдите в аккаунт.</p>
       </main>
     )
   }
 
   return (
-    <main className="min-h-screen bg-slate-950 text-slate-50">
-      <div className="container mx-auto px-4 py-24">
+    <div>
+      <div className="max-w-4xl mx-auto">
         <h1 className="text-4xl font-bold mb-4">Панель управления</h1>
-        <p className="text-slate-400 mb-2">
+        <p className="text-slate-600 mb-2">
           Привет, {user.fullName || user.primaryEmailAddress?.emailAddress}!
         </p>
         {error && (
-          <p className="text-sm text-red-400">
+          <p className="text-sm text-red-500">
             Не удалось сохранить профиль в базе: {error}
           </p>
         )}
         {!error && synced && (
-          <p className="text-sm text-emerald-400">
+          <p className="text-sm text-emerald-600">
             Профиль пользователя сохранён в базе данных.
           </p>
         )}
       </div>
-    </main>
+    </div>
   )
 }
 
