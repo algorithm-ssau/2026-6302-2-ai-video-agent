@@ -55,7 +55,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     <div className="min-h-screen flex bg-gray-50 text-slate-900">
       <aside className="w-72 border-r border-gray-200 bg-white flex flex-col">
         <div className="px-6 py-5 flex items-center gap-3 border-b border-gray-100">
-          <Image src="/logo.png" alt="logo" width={36} height={36} className="rounded-md" />
+          <Image src="/logo.png" alt="logo" width={36} height={36} loading="eager" className="rounded-md" />
           <div>
             <div className="font-bold text-lg">VidMaxx</div>
             <div className="text-xs text-slate-500">Creator Studio</div>
@@ -108,7 +108,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
           </Link>
 
           <Link href="#" className="mt-3 flex items-center text-sm text-slate-600 hover:text-slate-900">
-            <Image src="/logo.png" alt="user" width={28} height={28} className="rounded-full mr-3" />
+            <Image src="/logo.png" alt="user" width={28} height={28} loading="eager" className="rounded-full mr-3" />
             <span>Profile settings</span>
           </Link>
         </div>
