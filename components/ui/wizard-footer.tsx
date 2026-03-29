@@ -10,7 +10,9 @@ type Props = {
   continueDisabled?: boolean
 }
 
-export default function WizardFooter({ step, total = 6, onBack, onContinue, continueDisabled }: Props) {
+export default function WizardFooter({ step, total = 6, onBack, onContinue, continueDisabled = false }: Props) {
+  const disabled = Boolean(continueDisabled)
+
   return (
     <div className="mt-6 border-t pt-4 flex items-center justify-between">
       <div>
@@ -24,7 +26,7 @@ export default function WizardFooter({ step, total = 6, onBack, onContinue, cont
       <div className="text-sm text-slate-500">Step {step} of {total}</div>
 
       <div>
-        <button onClick={onContinue} disabled={continueDisabled} className="px-4 py-2 rounded bg-purple-600 text-white disabled:opacity-50">
+        <button onClick={onContinue} disabled={disabled ? true : undefined} className="px-4 py-2 rounded bg-purple-600 text-white disabled:opacity-50">
           Continue
         </button>
       </div>
