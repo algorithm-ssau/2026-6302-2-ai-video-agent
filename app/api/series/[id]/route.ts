@@ -4,21 +4,26 @@ import { NextResponse } from "next/server"
 import { supabaseAdmin } from "@/lib/supabase/admin"
 import { isValidSeriesPayload } from "@/lib/series"
 
-export async function GET() {
+type RouteContext = {
+  params: Promise<{ id: string }>
+}
+
+export async function GET(_: Request, context: RouteContext) {
   const { userId } = await auth()
 
   if (!userId) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
   }
 
+  const { id } = await context.params
   const supabase = supabaseAdmin()
+
   const { data, error } = await supabase
     .from("video_agent_series")
-    .select(
-      "id, series_name, selected_style, status, created_at, updated_at, publish_time, selected_platforms, step_payload",
-    )
+    .select("*")
+    .eq("id", id)
     .eq("user_id", userId)
-    .order("created_at", { ascending: false })
+    .single()
 
   if (error) {
     return NextResponse.json({ error: error.message }, { status: 500 })
@@ -27,14 +32,82 @@ export async function GET() {
   return NextResponse.json({ series: data })
 }
 
-export async function POST(request: Request) {
+export async function PATCH(request: Request, context: RouteContext) {
   const { userId } = await auth()
 
   if (!userId) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
   }
 
+  const { id } = await context.params
   const body: unknown = await request.json().catch(() => null)
+  const supabase = supabaseAdmin()
+
+  if (
+    body &&
+    typeof body === "object" &&
+    "action" in body &&
+    typeof body.action === "string"
+  ) {
+    const { data: existing, error: fetchError } = await supabase
+      .from("video_agent_series")
+      .select("step_payload")
+      .eq("id", id)
+      .eq("user_id", userId)
+      .single()
+
+    if (fetchError) {
+      return NextResponse.json({ error: fetchError.message }, { status: 500 })
+    }
+
+    const currentPayload =
+      existing?.step_payload && typeof existing.step_payload === "object"
+        ? (existing.step_payload as Record<string, unknown>)
+        : {}
+
+    if (body.action === "pause" || body.action === "resume") {
+      const isPaused = body.action === "pause"
+      const { error } = await supabase
+        .from("video_agent_series")
+        .update({
+          step_payload: {
+            ...currentPayload,
+            isPaused,
+          },
+        })
+        .eq("id", id)
+        .eq("user_id", userId)
+
+      if (error) {
+        return NextResponse.json({ error: error.message }, { status: 500 })
+      }
+
+      return NextResponse.json({ ok: true })
+    }
+
+    if (body.action === "trigger") {
+      const { error } = await supabase
+        .from("video_agent_series")
+        .update({
+          status: "processing",
+          step_payload: {
+            ...currentPayload,
+            isPaused: false,
+            lastTriggeredAt: new Date().toISOString(),
+          },
+        })
+        .eq("id", id)
+        .eq("user_id", userId)
+
+      if (error) {
+        return NextResponse.json({ error: error.message }, { status: 500 })
+      }
+
+      return NextResponse.json({ ok: true })
+    }
+
+    return NextResponse.json({ error: "Unsupported action" }, { status: 400 })
+  }
 
   if (!isValidSeriesPayload(body)) {
     return NextResponse.json({ error: "Invalid payload" }, { status: 400 })
@@ -93,13 +166,11 @@ export async function POST(request: Request) {
     )
   }
 
-  const supabase = supabaseAdmin()
   const selectedBGMeta = Array.isArray(body.selectedBGMeta) ? body.selectedBGMeta : []
 
   const { data, error } = await supabase
     .from("video_agent_series")
-    .insert({
-      user_id: userId,
+    .update({
       niche_type: body.nicheType,
       selected_niche: body.selectedNiche,
       custom_niche: customNiche || null,
@@ -114,9 +185,10 @@ export async function POST(request: Request) {
       duration: body.duration,
       selected_platforms: body.selectedPlatforms,
       publish_time: publishTime,
-      status: "scheduled",
       step_payload: body,
     })
+    .eq("id", id)
+    .eq("user_id", userId)
     .select("id")
     .single()
 
@@ -125,4 +197,27 @@ export async function POST(request: Request) {
   }
 
   return NextResponse.json({ ok: true, id: data.id })
+}
+
+export async function DELETE(_: Request, context: RouteContext) {
+  const { userId } = await auth()
+
+  if (!userId) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
+  }
+
+  const { id } = await context.params
+  const supabase = supabaseAdmin()
+
+  const { error } = await supabase
+    .from("video_agent_series")
+    .delete()
+    .eq("id", id)
+    .eq("user_id", userId)
+
+  if (error) {
+    return NextResponse.json({ error: error.message }, { status: 500 })
+  }
+
+  return NextResponse.json({ ok: true })
 }

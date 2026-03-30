@@ -1,12 +1,13 @@
 "use client"
 
-import React, { useState, useRef } from "react"
+import React, { useEffect, useRef, useState } from "react"
 import Image from "next/image"
-import { useRouter } from "next/navigation"
+import { useRouter, useSearchParams } from "next/navigation"
 import CaptionStyle from "../../../components/ui/caption-style"
 import WizardFooter from "../../../components/ui/wizard-footer"
 import { Language, DeepgramVoices, FonadalabVoices } from "../../../lib/voiceData"
 import { MusicTracks } from "../../../lib/musicData"
+import type { SeriesPayload } from "../../../lib/series"
 
 const AVAILABLE_NICHES = [
   { id: "scary", title: "Scary Stories", desc: "Short creepy tales that hook viewers." },
@@ -133,6 +134,17 @@ function Stepper({ step }: { step: number }) {
   )
 }
 
+function toDatetimeLocalValue(value: string | null) {
+  if (!value) return ""
+
+  const date = new Date(value)
+  if (Number.isNaN(date.getTime())) return ""
+
+  const offset = date.getTimezoneOffset()
+  const localDate = new Date(date.getTime() - offset * 60_000)
+  return localDate.toISOString().slice(0, 16)
+}
+
 function NicheSelection({
   nicheType,
   setNicheType,
@@ -186,6 +198,9 @@ function NicheSelection({
 
 export default function CreateSeriesPage() {
   const router = useRouter()
+  const searchParams = useSearchParams()
+  const seriesId = searchParams.get("seriesId")
+  const isEditMode = Boolean(seriesId)
   const [step, setStep] = useState(1)
 
   const [nicheType, setNicheType] = useState<'available'|'custom'>('available')
@@ -212,6 +227,85 @@ export default function CreateSeriesPage() {
   const [publishTime, setPublishTime] = useState<string>("")
   const [scheduleError, setScheduleError] = useState<string | null>(null)
   const [isScheduling, setIsScheduling] = useState(false)
+  const [isLoadingExistingSeries, setIsLoadingExistingSeries] = useState(false)
+
+  useEffect(() => {
+    if (!seriesId) return
+
+    const loadSeries = async () => {
+      setIsLoadingExistingSeries(true)
+      setScheduleError(null)
+
+      try {
+        const res = await fetch(`/api/series/${seriesId}`)
+
+        if (!res.ok) {
+          const data = await res.json().catch(() => ({}))
+          throw new Error(data.error || "Failed to load series")
+        }
+
+        const data = await res.json()
+        const series = data.series as
+          | ({
+              niche_type?: string | null
+              selected_niche?: string | null
+              custom_niche?: string | null
+              language?: string | null
+              language_model?: string | null
+              voice?: string | null
+              selected_bg?: string[] | null
+              selected_style?: string | null
+              selected_caption_style?: string | null
+              series_name?: string | null
+              duration?: string | null
+              selected_platforms?: string[] | null
+              publish_time?: string | null
+              step_payload?: Partial<SeriesPayload> | null
+            })
+          | null
+
+        if (!series) {
+          throw new Error("Series not found")
+        }
+
+        const payload = series.step_payload ?? {}
+
+        setNicheType(
+          payload.nicheType === "custom" || series.niche_type === "custom"
+            ? "custom"
+            : "available",
+        )
+        setSelectedNiche(payload.selectedNiche ?? series.selected_niche ?? null)
+        setCustomNiche(payload.customNiche ?? series.custom_niche ?? "")
+        setLanguage(payload.language ?? series.language ?? null)
+        setLanguageModel(payload.languageModel ?? series.language_model ?? null)
+        setVoice(payload.voice ?? series.voice ?? null)
+        setSelectedBG(payload.selectedBG ?? series.selected_bg ?? [])
+        setSelectedStyle(payload.selectedStyle ?? series.selected_style ?? null)
+        setSelectedCaptionStyle(
+          payload.selectedCaptionStyle ?? series.selected_caption_style ?? null,
+        )
+        setSeriesName(payload.seriesName ?? series.series_name ?? "")
+        setDuration(payload.duration ?? series.duration ?? "30-50")
+        setSelectedPlatforms(
+          payload.selectedPlatforms ?? series.selected_platforms ?? [],
+        )
+        setPublishTime(
+          payload.publishTime
+            ? toDatetimeLocalValue(payload.publishTime)
+            : toDatetimeLocalValue(series.publish_time ?? null),
+        )
+      } catch (error) {
+        setScheduleError(
+          error instanceof Error ? error.message : "Failed to load series",
+        )
+      } finally {
+        setIsLoadingExistingSeries(false)
+      }
+    }
+
+    void loadSeries()
+  }, [seriesId])
 
   function togglePreview(src: string) {
     try {
@@ -253,8 +347,8 @@ export default function CreateSeriesPage() {
         selectedBG.includes(track.id),
       )
 
-      const res = await fetch("/api/series", {
-        method: "POST",
+      const res = await fetch(seriesId ? `/api/series/${seriesId}` : "/api/series", {
+        method: seriesId ? "PATCH" : "POST",
         headers: {
           "Content-Type": "application/json",
         },
@@ -301,6 +395,7 @@ export default function CreateSeriesPage() {
   })()
 
   const scheduleDisabled =
+    isLoadingExistingSeries ||
     isScheduling ||
     seriesName.trim() === "" ||
     selectedPlatforms.length === 0 ||
@@ -312,8 +407,12 @@ export default function CreateSeriesPage() {
         <Stepper step={step} />
 
         <div className="mb-4">
-          <h1 className="text-2xl font-bold">Create Series</h1>
-          <p className="text-sm text-slate-500">Step {step} of {total} — pick niche to start</p>
+          <h1 className="text-2xl font-bold">{isEditMode ? "Edit Series" : "Create Series"}</h1>
+          <p className="text-sm text-slate-500">
+            {isLoadingExistingSeries
+              ? "Loading existing series..."
+              : `Step ${step} of ${total} — pick niche to start`}
+          </p>
         </div>
 
         {step === 1 && (
@@ -457,7 +556,13 @@ export default function CreateSeriesPage() {
                   disabled={scheduleDisabled}
                   className="bg-purple-600 text-white px-4 py-2 rounded disabled:opacity-50 disabled:cursor-not-allowed"
                 >
-                  {isScheduling ? "Scheduling..." : "Schedule"}
+                  {isScheduling
+                    ? isEditMode
+                      ? "Saving..."
+                      : "Scheduling..."
+                    : isEditMode
+                      ? "Save changes"
+                      : "Schedule"}
                 </button>
               </div>
             </div>
