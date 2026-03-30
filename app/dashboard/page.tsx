@@ -44,11 +44,12 @@ const createdAtFormatter = new Intl.DateTimeFormat("en-US", {
 
 function getDisplayStatus(series: SeriesRecord) {
   if (series.step_payload?.isPaused) return "Paused"
+  if (series.status === "active") return "Active"
   if (series.status === "processing") return "Processing"
   if (series.status === "completed") return "Completed"
   if (series.status === "failed") return "Failed"
   if (series.status === "cancelled") return "Cancelled"
-  return "Scheduled"
+  return "Active"
 }
 
 function getStatusClasses(status: string) {
@@ -57,8 +58,10 @@ function getStatusClasses(status: string) {
       return "bg-amber-100 text-amber-800"
     case "Processing":
       return "bg-blue-100 text-blue-700"
-    case "Completed":
+    case "Active":
       return "bg-emerald-100 text-emerald-700"
+    case "Completed":
+      return "bg-teal-100 text-teal-700"
     case "Failed":
       return "bg-red-100 text-red-700"
     case "Cancelled":
@@ -183,6 +186,7 @@ export default function DashboardPage() {
           if (action === "resume") {
             return {
               ...item,
+              status: "active",
               step_payload: {
                 ...(item.step_payload ?? {}),
                 isPaused: false,

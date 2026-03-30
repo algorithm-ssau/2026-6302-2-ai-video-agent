@@ -114,7 +114,7 @@ export async function POST(request: Request) {
       duration: body.duration,
       selected_platforms: body.selectedPlatforms,
       publish_time: publishTime,
-      status: "scheduled",
+      status: "active",
       step_payload: body,
     })
     .select("id")

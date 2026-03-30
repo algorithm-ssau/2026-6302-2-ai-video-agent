@@ -67,14 +67,23 @@ export async function PATCH(request: Request, context: RouteContext) {
 
     if (body.action === "pause" || body.action === "resume") {
       const isPaused = body.action === "pause"
+      const updatePayload: {
+        status?: string
+        step_payload: Record<string, unknown>
+      } = {
+        step_payload: {
+          ...currentPayload,
+          isPaused,
+        },
+      }
+
+      if (body.action === "resume") {
+        updatePayload.status = "active"
+      }
+
       const { error } = await supabase
         .from("video_agent_series")
-        .update({
-          step_payload: {
-            ...currentPayload,
-            isPaused,
-          },
-        })
+        .update(updatePayload)
         .eq("id", id)
         .eq("user_id", userId)
 
