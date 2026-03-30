@@ -2,8 +2,8 @@
 
 import React, { useState, useRef } from "react"
 import Image from "next/image"
+import { useRouter } from "next/navigation"
 import CaptionStyle from "../../../components/ui/caption-style"
-import Link from "next/link"
 import WizardFooter from "../../../components/ui/wizard-footer"
 import { Language, DeepgramVoices, FonadalabVoices } from "../../../lib/voiceData"
 import { MusicTracks } from "../../../lib/musicData"
@@ -60,40 +60,6 @@ function PlatformButton({ id, label, active, onToggle }: { id: string; label: st
   const common = 'flex items-center gap-2 px-3 py-2 rounded-md border';
   const activeClass = active ? 'bg-purple-600 text-white border-purple-600' : 'bg-white border-gray-100 hover:bg-gray-50'
 
-  function Icon({ name }: { name: string }) {
-    switch (name) {
-      case 'tiktok':
-        return (
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-            <path d="M16 3v10.5a4.5 4.5 0 11-4.5-4.5V9a6 6 0 006 6 6 6 0 000-12h-.5z" fill="currentColor" />
-          </svg>
-        )
-      case 'youtube':
-        return (
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-            <path d="M10 15l5-3-5-3v6z" fill="currentColor" />
-            <rect x="3" y="6" width="18" height="12" rx="3" stroke="currentColor" strokeWidth="1.2" fill="none" />
-          </svg>
-        )
-      case 'vk':
-        return (
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-            <path d="M3 4h18v16H3z" fill="currentColor" opacity="0.05" />
-            <path d="M8 9c2 0 3 2 5 2s3-2 5-2v1c-2 0-3 2-5 2s-3-2-5-2v-1z" fill="currentColor" />
-          </svg>
-        )
-      case 'email':
-        return (
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-            <path d="M3 6.5v11a1 1 0 001 1h16a1 1 0 001-1v-11" stroke="currentColor" strokeWidth="1.2" fill="none" />
-            <path d="M3.5 6.5l8.5 6 8.5-6" stroke="currentColor" strokeWidth="1.2" fill="none" />
-          </svg>
-        )
-      default:
-        return null
-    }
-  }
-
   return (
     <button
       type="button"
@@ -102,11 +68,45 @@ function PlatformButton({ id, label, active, onToggle }: { id: string; label: st
       className={`${common} ${activeClass}`}
     >
       <span className="w-5 h-5 flex items-center justify-center text-lg">
-        <Icon name={id} />
+        <PlatformIcon name={id} />
       </span>
       <span className="text-sm font-medium">{label}</span>
     </button>
   )
+}
+
+function PlatformIcon({ name }: { name: string }) {
+  switch (name) {
+    case 'tiktok':
+      return (
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <path d="M16 3v10.5a4.5 4.5 0 11-4.5-4.5V9a6 6 0 006 6 6 6 0 000-12h-.5z" fill="currentColor" />
+        </svg>
+      )
+    case 'youtube':
+      return (
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <path d="M10 15l5-3-5-3v6z" fill="currentColor" />
+          <rect x="3" y="6" width="18" height="12" rx="3" stroke="currentColor" strokeWidth="1.2" fill="none" />
+        </svg>
+      )
+    case 'vk':
+      return (
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <path d="M3 4h18v16H3z" fill="currentColor" opacity="0.05" />
+          <path d="M8 9c2 0 3 2 5 2s3-2 5-2v1c-2 0-3 2-5 2s-3-2-5-2v-1z" fill="currentColor" />
+        </svg>
+      )
+    case 'email':
+      return (
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <path d="M3 6.5v11a1 1 0 001 1h16a1 1 0 001-1v-11" stroke="currentColor" strokeWidth="1.2" fill="none" />
+          <path d="M3.5 6.5l8.5 6 8.5-6" stroke="currentColor" strokeWidth="1.2" fill="none" />
+        </svg>
+      )
+    default:
+      return null
+  }
 }
 
 function Stepper({ step }: { step: number }) {
@@ -185,6 +185,7 @@ function NicheSelection({
 }
 
 export default function CreateSeriesPage() {
+  const router = useRouter()
   const [step, setStep] = useState(1)
 
   const [nicheType, setNicheType] = useState<'available'|'custom'>('available')
@@ -209,6 +210,8 @@ export default function CreateSeriesPage() {
   ]
   const [selectedPlatforms, setSelectedPlatforms] = useState<string[]>([])
   const [publishTime, setPublishTime] = useState<string>("")
+  const [scheduleError, setScheduleError] = useState<string | null>(null)
+  const [isScheduling, setIsScheduling] = useState(false)
 
   function togglePreview(src: string) {
     try {
@@ -224,7 +227,7 @@ export default function CreateSeriesPage() {
       a.pause()
       a.src = src
       void a.play()
-    } catch (e) {
+    } catch {
       // ignore
     }
   }
@@ -239,6 +242,56 @@ export default function CreateSeriesPage() {
     setStep(s => Math.min(total, s + 1))
   }
 
+  async function handleSchedule() {
+    if (isScheduling) return
+
+    setScheduleError(null)
+    setIsScheduling(true)
+
+    try {
+      const selectedBGMeta = MusicTracks.filter((track) =>
+        selectedBG.includes(track.id),
+      )
+
+      const res = await fetch("/api/series", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          nicheType,
+          selectedNiche,
+          customNiche,
+          language,
+          languageModel,
+          voice,
+          selectedBG,
+          selectedBGMeta,
+          selectedStyle,
+          selectedCaptionStyle,
+          seriesName,
+          duration,
+          selectedPlatforms,
+          publishTime,
+        }),
+      })
+
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}))
+        throw new Error(data.error || "Failed to schedule series")
+      }
+
+      router.push("/dashboard")
+      router.refresh()
+    } catch (error) {
+      setScheduleError(
+        error instanceof Error ? error.message : "Failed to schedule series",
+      )
+    } finally {
+      setIsScheduling(false)
+    }
+  }
+
   const continueDisabled = (() => {
     if (step === 1) return nicheType === 'available' ? !selectedNiche : customNiche.trim() === ''
     if (step === 2) return !language || !voice
@@ -246,6 +299,12 @@ export default function CreateSeriesPage() {
     if (step === 5) return !selectedCaptionStyle
     return false
   })()
+
+  const scheduleDisabled =
+    isScheduling ||
+    seriesName.trim() === "" ||
+    selectedPlatforms.length === 0 ||
+    publishTime.trim() === ""
 
   return (
     <div className="min-h-screen bg-gray-50 p-6">
@@ -291,7 +350,7 @@ export default function CreateSeriesPage() {
               <div className="bg-white rounded-md border border-gray-200 p-4">
                 <h3 className="font-semibold mb-3">Voices ({languageModel || 'select language'})</h3>
                 <div className="h-64 overflow-auto grid gap-3">
-                  {(!languageModel ? [] : (languageModel === 'deepgram' ? DeepgramVoices : FonadalabVoices)).map((v, idx) => (
+                  {(!languageModel ? [] : (languageModel === 'deepgram' ? DeepgramVoices : FonadalabVoices)).map((v) => (
                     <div key={v.modelName} className={`p-3 rounded border flex items-center justify-between ${voice === v.modelName ? 'border-purple-600 bg-purple-50' : 'border-gray-100 bg-white'}`}>
                       <div className="flex items-center">
                         <div className="w-10 h-10 rounded-full bg-gray-100 flex items-center justify-center mr-3 text-sm font-medium">{v.modelName.charAt(0).toUpperCase()}</div>
@@ -388,16 +447,18 @@ export default function CreateSeriesPage() {
                 <p className="text-xs text-slate-500 mt-2">Video will generate 3-6 hours before video publish</p>
               </div>
 
+              {scheduleError && (
+                <p className="text-sm text-red-600">{scheduleError}</p>
+              )}
+
               <div className="pt-2">
-                <button onClick={()=>{
-                  // schedule action placeholder
-                  // gather payload
-                  const payload = { seriesName, duration, platforms: selectedPlatforms, publishTime }
-                  // For now just log
-                  // eslint-disable-next-line no-console
-                  console.log('Schedule payload', payload)
-                  alert('Series scheduled (preview): ' + JSON.stringify(payload))
-                }} className="bg-purple-600 text-white px-4 py-2 rounded">Schedule</button>
+                <button
+                  onClick={() => void handleSchedule()}
+                  disabled={scheduleDisabled}
+                  className="bg-purple-600 text-white px-4 py-2 rounded disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  {isScheduling ? "Scheduling..." : "Schedule"}
+                </button>
               </div>
             </div>
           </div>
