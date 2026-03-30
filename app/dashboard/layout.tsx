@@ -63,19 +63,19 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
         </div>
 
         <div className="px-4 py-4">
-          <button className="w-full bg-purple-600 hover:bg-purple-500 text-white font-semibold py-2 rounded-md">+ Create new series</button>
+          <Link href="/dashboard/create" className="block w-full rounded-md bg-purple-600 py-2 text-center font-semibold text-white hover:bg-purple-500">+ Create new series</Link>
         </div>
 
         <nav className="flex-1 px-2 py-4">
           <ul className="space-y-1">
             <li>
-              <Link href="#" className="flex items-center text-lg py-3 px-3 rounded-md hover:bg-gray-100">
+              <Link href="/dashboard" className="flex items-center text-lg py-3 px-3 rounded-md hover:bg-gray-100">
                 <Icon name="series" />
                 Series
               </Link>
             </li>
             <li>
-              <Link href="#" className="flex items-center text-lg py-3 px-3 rounded-md hover:bg-gray-100">
+              <Link href="/dashboard/videos" className="flex items-center text-lg py-3 px-3 rounded-md hover:bg-gray-100">
                 <Icon name="videos" />
                 Videos
               </Link>
