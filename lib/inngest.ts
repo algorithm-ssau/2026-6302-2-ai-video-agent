@@ -26,6 +26,14 @@ export const generateVideo = inngest.createFunction(
   async ({ event, step }) => {
     const { seriesId, userId } = event.data;
 
+    if (typeof seriesId !== "string" || !seriesId) {
+      throw new Error("Invalid event data: seriesId must be a non-empty string");
+    }
+
+    if (typeof userId !== "string" || !userId) {
+      throw new Error("Invalid event data: userId must be a non-empty string");
+    }
+
     const scriptData = await step.run("generate-video-script", async () => {
       console.log("Generating video script for series:", seriesId);
       return await generateVideoScriptStep(seriesId, userId);

@@ -78,10 +78,38 @@ IMPORTANT: Return ONLY valid JSON, no raw text. Use this exact JSON structure:
     throw new Error("Failed to parse AI response as JSON");
   }
 
-  const parsedScript = JSON.parse(jsonMatch[0]) as VideoScript;
+  let parsedScript: VideoScript;
+  try {
+    parsedScript = JSON.parse(jsonMatch[0]) as VideoScript;
+  } catch (parseError) {
+    throw new Error(
+      `Failed to parse AI response as JSON: ${parseError instanceof Error ? parseError.message : String(parseError)}. Response snippet: ${responseText.slice(0, 200)}`
+    );
+  }
+
+  if (typeof parsedScript.title !== "string" || !parsedScript.title) {
+    throw new Error("Invalid script format: missing or invalid title");
+  }
+
+  if (typeof parsedScript.totalDuration !== "number") {
+    throw new Error("Invalid script format: missing or invalid totalDuration");
+  }
 
   if (!parsedScript.scenes || !Array.isArray(parsedScript.scenes)) {
     throw new Error("Invalid script format: missing scenes array");
+  }
+
+  for (const scene of parsedScript.scenes) {
+    if (
+      typeof scene.sceneNumber !== "number" ||
+      typeof scene.text !== "string" ||
+      typeof scene.imagePrompt !== "string" ||
+      typeof scene.duration !== "number"
+    ) {
+      throw new Error(
+        `Invalid script format: scene ${scene.sceneNumber ?? "unknown"} is missing required fields`
+      );
+    }
   }
 
   return parsedScript;

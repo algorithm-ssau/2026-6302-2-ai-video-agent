@@ -15,7 +15,13 @@ export async function generateVideoScriptStep(seriesId: string, userId: string):
     throw new Error(`Failed to fetch series: ${seriesError?.message}`);
   }
 
-  const stepPayload = series.step_payload as Record<string, unknown> || {};
+  const rawPayload = series.step_payload;
+  const stepPayload: Record<string, unknown> =
+    typeof rawPayload === "object" &&
+    rawPayload !== null &&
+    !Array.isArray(rawPayload)
+      ? (rawPayload as Record<string, unknown>)
+      : {};
   
   const niche = series.niche_type === "custom" 
     ? series.custom_niche 
