@@ -16,7 +16,11 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "Series ID required" }, { status: 400 });
   }
 
-  const { seriesId } = body as { seriesId: string };
+  const { seriesId } = body as { seriesId: unknown };
+
+  if (typeof seriesId !== "string" || seriesId.trim().length === 0) {
+    return NextResponse.json({ error: "Series ID must be a non-empty string" }, { status: 400 });
+  }
 
   const supabase = supabaseAdmin();
   const { data: series, error: fetchError } = await supabase
