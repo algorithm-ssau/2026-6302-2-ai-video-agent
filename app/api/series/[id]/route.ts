@@ -2,6 +2,7 @@ import { auth } from "@clerk/nextjs/server"
 import { NextResponse } from "next/server"
 
 import { supabaseAdmin } from "@/lib/supabase/admin"
+import { inngest } from "@/lib/inngest-client"
 import { isValidSeriesPayload } from "@/lib/series"
 
 type RouteContext = {
@@ -95,7 +96,7 @@ export async function PATCH(request: Request, context: RouteContext) {
     }
 
     if (body.action === "trigger") {
-      const { error } = await supabase
+      await supabase
         .from("video_agent_series")
         .update({
           status: "processing",
@@ -108,9 +109,13 @@ export async function PATCH(request: Request, context: RouteContext) {
         .eq("id", id)
         .eq("user_id", userId)
 
-      if (error) {
-        return NextResponse.json({ error: error.message }, { status: 500 })
-      }
+      await inngest.send({
+        name: "video/generate",
+        data: {
+          seriesId: id,
+          userId,
+        },
+      })
 
       return NextResponse.json({ ok: true })
     }
