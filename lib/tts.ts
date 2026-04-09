@@ -111,10 +111,20 @@ export async function generateVoiceForScript(seriesId: string, userId: string, s
     url = await generateDeepgramTTS(combinedText, voice, seriesId, fileName);
   }
 
-  // Save single uploaded audio reference to DB (array with one item)
+  // Save single uploaded audio reference into step_payload.voiceover_url
+  const { data: existing, error: fetchError } = await supabase
+    .from("video_agent_series")
+    .select("step_payload")
+    .eq("id", seriesId)
+    .single();
+
+  const currentPayload = existing?.step_payload && typeof existing.step_payload === "object"
+    ? (existing.step_payload as Record<string, unknown>)
+    : {};
+
   await supabase
     .from("video_agent_series")
-    .update({ audio_files: [url], updated_at: new Date().toISOString() })
+    .update({ step_payload: { ...currentPayload, voiceover_url: url, audio_files: [url] }, updated_at: new Date().toISOString() })
     .eq("id", seriesId);
 
   return [url];
