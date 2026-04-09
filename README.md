@@ -67,6 +67,7 @@ public/                  # статические ассеты
 ```bash
 npm install
 npm run dev
+npx inngest-cli@latest dev  # Запуск Inngest (очереди задач для AI-агента)
 ```
 
 2) Откройте приложение: http://localhost:3000
