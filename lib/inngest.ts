@@ -65,7 +65,7 @@ export const generateVideo = inngest.createFunction(
     });
 
     const imagesResult = await step.run("generate-images", async () => {
-      console.log("Generating images using Replicate");
+      console.log("Generating images using Hugging Face models");
       try {
         const { generateImagesForScript } = await import("./images");
         const urls = await generateImagesForScript(seriesId, scriptData);
@@ -92,9 +92,13 @@ export const generateVideo = inngest.createFunction(
         const captionRes = captionResult as unknown as { captions?: unknown } | undefined;
         const captions = (captionRes?.captions as Record<string, unknown> | undefined) || {};
 
-        const insertRow = {
+        // Store the `user_id` from the series row directly as text (videos.user_id is now text).
+        const { data: seriesRow } = await supabase.from("video_agent_series").select("user_id").eq("id", seriesId).single();
+        const seriesUserRaw = seriesRow?.user_id ?? null; // clerk_id text
+
+        const insertRow: Record<string, unknown> = {
           series_id: seriesId,
-          user_id: userId,
+          user_id: seriesUserRaw,
           title: scriptData.title || null,
           status: "generated",
           script_data: scriptData,
