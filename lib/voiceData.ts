@@ -21,11 +21,11 @@ export const Language = [
     modelLangCode: "de-DE",
   },
   {
-    language: "Hindi",
-    countryCode: "IN",
-    countryFlag: "🇮🇳",
+    language: "Russian",
+    countryCode: "RU",
+    countryFlag: "🇷🇺",
     modelName: "fonadalab",
-    modelLangCode: "hi-IN",
+    modelLangCode: "ru-RU",
   },
   {
     language: "Marathi",
@@ -85,8 +85,8 @@ export const FonadalabVoices = [
   },
   {
     model: "fonadalab",
-    modelName: "raaga",
-    preview: "fonadalab-raaga.mp3",
+    modelName: "ru",
+    preview: "fonadalab-ru.mp3",
     gender: "male",
   },
 ];

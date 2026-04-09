@@ -36,17 +36,17 @@ export async function POST() {
     .from("users")
     .upsert(
       {
+        clerk_id: userId,
         email,
         name,
-        user_id: userId,
       },
-      { onConflict: "user_id" },
+      { onConflict: "clerk_id" },
     )
 
   if (error) {
+    console.error("Supabase upsert error:", error)
     return NextResponse.json({ error: error.message }, { status: 500 })
   }
 
   return NextResponse.json({ ok: true })
 }
-
