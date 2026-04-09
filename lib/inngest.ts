@@ -2,6 +2,7 @@ import { eventType } from "inngest";
 import { serve } from "inngest/next";
 import { inngest } from "./inngest-client";
 import { generateVideoScriptStep } from "./video-steps/generate-script";
+import { generateVoiceForScript } from "./tts";
 
 const helloWorldEvent = eventType("test/hello.world");
 const videoGenerateEvent = eventType("video/generate");
@@ -40,8 +41,14 @@ export const generateVideo = inngest.createFunction(
     });
 
     await step.run("generate-voice", async () => {
-      console.log("Generating voice using TTS (placeholder)");
-      return { success: true };
+      console.log("Generating voice using TTS");
+      try {
+        const uploads = await generateVoiceForScript(seriesId, userId, scriptData);
+        return { success: true, uploads };
+      } catch (err) {
+        console.error("TTS generation failed:", err);
+        throw err;
+      }
     });
 
     await step.run("generate-caption", async () => {
