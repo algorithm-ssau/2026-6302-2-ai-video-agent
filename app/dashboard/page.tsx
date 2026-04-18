@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react"
 import Image from "next/image"
 import Link from "next/link"
+import { useRouter } from "next/navigation"
 import { useUser } from "@clerk/nextjs"
 import {
   Edit3,
@@ -72,6 +73,7 @@ function getStatusClasses(status: string) {
 }
 
 export default function DashboardPage() {
+  const router = useRouter()
   const { user, isLoaded } = useUser()
   const [synced, setSynced] = useState(false)
   const [syncError, setSyncError] = useState<string | null>(null)
@@ -204,6 +206,10 @@ export default function DashboardPage() {
           }
         }),
       )
+
+      if (action === "trigger") {
+        router.push(`/dashboard/videos?seriesId=${id}&generating=1`)
+      }
     } catch (err) {
       setSeriesError(err instanceof Error ? err.message : "Unknown error")
     } finally {
