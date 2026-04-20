@@ -1,12 +1,34 @@
 import { eventType } from "inngest";
 import { serve } from "inngest/next";
+import { unlink } from "node:fs/promises";
 import { inngest } from "./inngest-client";
 import { generateVideoScriptStep } from "./video-steps/generate-script";
 import { generateVoiceForScript } from "./tts";
 import { supabaseAdmin } from "./supabase/admin";
+import type { CaptionWord } from "@/remotion/types";
 
 const helloWorldEvent = eventType("test/hello.world");
 const videoGenerateEvent = eventType("video/generate");
+
+function normalizeCaptionWords(input: unknown): CaptionWord[] {
+  if (!Array.isArray(input)) return [];
+  const normalized: CaptionWord[] = [];
+  for (const item of input) {
+    if (!item || typeof item !== "object") continue;
+    const raw = item as Record<string, unknown>;
+    const word = typeof raw.word === "string" ? raw.word.trim() : "";
+    const start = typeof raw.start === "number" ? raw.start : Number(raw.start);
+    const end = typeof raw.end === "number" ? raw.end : Number(raw.end);
+    if (!word || !Number.isFinite(start) || !Number.isFinite(end)) continue;
+    normalized.push({
+      word,
+      start,
+      end,
+      confidence: typeof raw.confidence === "number" ? raw.confidence : undefined,
+    });
+  }
+  return normalized;
+}
 
 export const helloWorld = inngest.createFunction(
   {
@@ -76,7 +98,7 @@ export const generateVideo = inngest.createFunction(
       }
     });
 
-    await step.run("save-to-database", async () => {
+    const saveResult = await step.run("save-to-database", async () => {
       console.log("Saving video data to database");
 
       try {
@@ -128,6 +150,102 @@ export const generateVideo = inngest.createFunction(
         console.error("Save to database failed:", err);
         throw err;
       }
+    });
+
+    await step.run("render-mp4-and-save-url", async () => {
+      const supabase = supabaseAdmin();
+      const save = saveResult as { videoId?: string | number } | undefined;
+      const videoId = save?.videoId ? String(save.videoId) : null;
+      const captionRes = captionResult as
+        | { captions?: { words?: unknown } }
+        | undefined;
+
+      if (!videoId) {
+        throw new Error("Missing video ID from save step");
+      }
+
+      const { data: series, error: seriesError } = await supabase
+        .from("video_agent_series")
+        .select("selected_caption_style, step_payload")
+        .eq("id", seriesId)
+        .single();
+
+      if (seriesError || !series) {
+        throw new Error(`Could not load series for render: ${seriesError?.message || "not found"}`);
+      }
+
+      const payload = (
+        series.step_payload && typeof series.step_payload === "object"
+          ? series.step_payload
+          : {}
+      ) as Record<string, unknown>;
+
+      const images = Array.isArray(payload.scenes_images) ? (payload.scenes_images as string[]) : [];
+      const audioUrl = typeof payload.voiceover_url === "string" ? payload.voiceover_url : "";
+      const fromCaptionStep = normalizeCaptionWords(captionRes?.captions?.words);
+      const fromSeriesPayload = normalizeCaptionWords(payload.captions_words);
+
+      const { data: videoRow, error: videoRowError } = await supabase
+        .from("videos")
+        .select("captions_words")
+        .eq("id", videoId)
+        .single();
+      if (videoRowError) {
+        throw new Error(`Could not load videos row captions for render: ${videoRowError.message}`);
+      }
+      const fromVideoRow = normalizeCaptionWords(videoRow?.captions_words);
+
+      const captionsWords =
+        fromCaptionStep.length > 0
+          ? fromCaptionStep
+          : fromSeriesPayload.length > 0
+            ? fromSeriesPayload
+            : fromVideoRow;
+
+      if (!images.length) throw new Error("No scene images available for rendering");
+      if (!audioUrl) throw new Error("No voiceover URL available for rendering");
+      if (!captionsWords.length) {
+        throw new Error(
+          `No caption words available for rendering (captionStep=${fromCaptionStep.length}, seriesStepPayload=${fromSeriesPayload.length}, videosRow=${fromVideoRow.length})`,
+        );
+      }
+
+      const { renderSeriesMp4 } = await import("./remotion/render");
+      const { uploadRenderedVideo } = await import("./remotion/upload-video");
+
+      const { outputPath } = await renderSeriesMp4({
+        seriesId,
+        images,
+        audioUrl,
+        captionsWords,
+        selectedCaptionStyle:
+          typeof series.selected_caption_style === "string" ? series.selected_caption_style : null,
+      });
+
+      const videoUrl = await uploadRenderedVideo(seriesId, outputPath);
+
+      const { error: updateVideoError } = await supabase
+        .from("videos")
+        .update({ video_url: videoUrl, status: "rendered", updated_at: new Date().toISOString() })
+        .eq("id", videoId);
+
+      if (updateVideoError) {
+        throw new Error(`Failed to save video_url: ${updateVideoError.message}`);
+      }
+
+      const currentPayload = payload;
+      await supabase
+        .from("video_agent_series")
+        .update({
+          status: "rendered",
+          step_payload: { ...currentPayload, rendered_video_url: videoUrl },
+          updated_at: new Date().toISOString(),
+        })
+        .eq("id", seriesId);
+
+      await unlink(outputPath).catch(() => undefined);
+
+      return { success: true, videoId, videoUrl };
     });
 
     await step.run("update-series-status", async () => {

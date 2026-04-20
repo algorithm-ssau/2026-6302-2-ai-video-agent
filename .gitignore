@@ -44,3 +44,5 @@ next-env.d.ts
 /.clerk/
 
 .idea/
+/tmp
+.tmp/renders/series-7d63e00d-1ed8-4578-8624-68a4b18b2193-1776675608143.mp4
