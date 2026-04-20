@@ -5,6 +5,7 @@ export type VideoListRow = {
   series_id: string | number | null
   title: string | null
   status: string | null
+  video_url: string | null
   images: unknown
   created_at: string | null
   duration_seconds: number | null
@@ -19,7 +20,7 @@ export async function listVideosForUser(
   let query = supabase
     .from("videos")
     .select(
-      "id, series_id, title, status, images, created_at, duration_seconds, scene_count",
+      "id, series_id, title, status, video_url, images, created_at, duration_seconds, scene_count",
     )
     .eq("user_id", userId)
     .order("created_at", { ascending: false })

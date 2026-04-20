@@ -24,7 +24,7 @@ function thumbnailUrl(images: unknown): string | null {
 
 function videoStatusBadge(status: string | null) {
   const s = (status || "unknown").toLowerCase()
-  if (s === "generated" || s === "completed") return "bg-teal-100 text-teal-800"
+  if (s === "generated" || s === "completed" || s === "rendered") return "bg-teal-100 text-teal-800"
   if (s === "processing" || s === "pending") return "bg-blue-100 text-blue-700"
   if (s === "failed") return "bg-red-100 text-red-700"
   return "bg-slate-100 text-slate-700"
@@ -254,6 +254,7 @@ export function VideosClient({
                 : "—"
               const title = v.title?.trim() || "Untitled"
               const sid = v.series_id != null ? String(v.series_id) : "—"
+              const videoUrl = typeof v.video_url === "string" ? v.video_url : null
 
               return (
                 <article
@@ -306,6 +307,20 @@ export function VideosClient({
                         </span>
                       ) : null}
                     </div>
+                    {videoUrl ? (
+                      <div className="pt-2">
+                        <a
+                          href={videoUrl}
+                          target="_blank"
+                          rel="noreferrer"
+                          className="inline-flex items-center rounded-lg bg-slate-900 px-3 py-2 text-sm font-semibold text-white hover:bg-slate-800"
+                        >
+                          Open MP4
+                        </a>
+                      </div>
+                    ) : (
+                      <p className="pt-2 text-sm text-slate-500">MP4 is being rendered...</p>
+                    )}
                   </div>
                 </article>
               )
