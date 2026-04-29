@@ -7,6 +7,7 @@ import {
   getPlunkSecretKey,
   getPlunkVideoReadyTemplateId,
 } from "./env";
+import { logServiceInitialized } from "./startup";
 
 type SendVideoReadyEmailInput = {
   to: string;
@@ -160,6 +161,11 @@ export async function sendVideoReadyEmail(input: SendVideoReadyEmailInput) {
   const fromEmail = getPlunkFromEmail();
 
   if (templateId) {
+    logServiceInitialized("plunk", {
+      apiUrl: getPlunkApiUrl(),
+      mode: "template-api",
+    });
+
     const body: PlunkTemplateSendBody = {
       to: userName === "there" ? input.to : { email: input.to, name: userName },
       template: templateId,
@@ -202,6 +208,12 @@ export async function sendVideoReadyEmail(input: SendVideoReadyEmailInput) {
   }
 
   const plunk = new Plunk(getPlunkSecretKey(), { baseUrl: getPlunkSdkBaseUrl() });
+  logServiceInitialized("plunk", {
+    apiUrl: getPlunkApiUrl(),
+    sender: fromEmail,
+    mode: "sdk",
+  });
+
   return await plunk.emails.send({
     to: input.to,
     from: fromEmail,
