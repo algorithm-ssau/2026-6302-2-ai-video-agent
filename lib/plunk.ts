@@ -129,98 +129,108 @@ function buildVideoReadyEmailHtml(data: {
 }
 
 export async function sendVideoReadyEmail(input: SendVideoReadyEmailInput) {
-  const title = input.title?.trim() || "Your generated video";
-  const userName = input.userName?.trim() || "there";
-  const viewUrl = buildViewUrl(input.seriesId, input.videoUrl) || input.videoUrl;
-  const durationLabel = formatDuration(input.durationSeconds);
-  const sceneCountLabel =
-    typeof input.sceneCount === "number" && Number.isFinite(input.sceneCount)
-      ? String(input.sceneCount)
-      : "Generated";
-  const generatedAt = input.generatedAt
-    ? new Intl.DateTimeFormat("en", { dateStyle: "medium", timeStyle: "short" }).format(
-        new Date(input.generatedAt),
-      )
-    : new Intl.DateTimeFormat("en", { dateStyle: "medium", timeStyle: "short" }).format(new Date());
+  try {
+    const title = input.title?.trim() || "Your generated video";
+    const userName = input.userName?.trim() || "there";
+    const viewUrl = buildViewUrl(input.seriesId, input.videoUrl) || input.videoUrl;
+    const durationLabel = formatDuration(input.durationSeconds);
+    const sceneCountLabel =
+      typeof input.sceneCount === "number" && Number.isFinite(input.sceneCount)
+        ? String(input.sceneCount)
+        : "Generated";
+    const generatedAt = input.generatedAt
+      ? new Intl.DateTimeFormat("en", { dateStyle: "medium", timeStyle: "short" }).format(
+          new Date(input.generatedAt),
+        )
+      : new Intl.DateTimeFormat("en", { dateStyle: "medium", timeStyle: "short" }).format(new Date());
 
-  const data = {
-    userName,
-    title,
-    videoUrl: input.videoUrl,
-    viewUrl,
-    downloadUrl: input.videoUrl,
-    thumbnailUrl: input.thumbnailUrl || "",
-    durationLabel,
-    sceneCountLabel,
-    generatedAt,
-    videoId: input.videoId ? String(input.videoId) : "",
-    seriesId: input.seriesId ? String(input.seriesId) : "",
-  };
-
-  const templateId = getPlunkVideoReadyTemplateId();
-  const fromEmail = getPlunkFromEmail();
-
-  if (templateId) {
-    logServiceInitialized("plunk", {
-      apiUrl: getPlunkApiUrl(),
-      mode: "template-api",
-    });
-
-    const body: PlunkTemplateSendBody = {
-      to: userName === "there" ? input.to : { email: input.to, name: userName },
-      template: templateId,
-      data,
+    const data = {
+      userName,
+      title,
+      videoUrl: input.videoUrl,
+      viewUrl,
+      downloadUrl: input.videoUrl,
+      thumbnailUrl: input.thumbnailUrl || "",
+      durationLabel,
+      sceneCountLabel,
+      generatedAt,
+      videoId: input.videoId ? String(input.videoId) : "",
+      seriesId: input.seriesId ? String(input.seriesId) : "",
     };
 
-    const endpoint = new URL("/v1/send", getPlunkApiUrl()).toString();
-    const response = await fetch(endpoint, {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${getPlunkSecretKey()}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify(body),
+    const templateId = getPlunkVideoReadyTemplateId();
+    const fromEmail = getPlunkFromEmail();
+
+    if (templateId) {
+      logServiceInitialized("plunk", {
+        apiUrl: getPlunkApiUrl(),
+        mode: "template-api",
+      });
+
+      const body: PlunkTemplateSendBody = {
+        to: userName === "there" ? input.to : { email: input.to, name: userName },
+        template: templateId,
+        data,
+      };
+
+      const endpoint = new URL("/v1/send", getPlunkApiUrl()).toString();
+      const response = await fetch(endpoint, {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${getPlunkSecretKey()}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(body),
+      });
+
+      const responseText = await response.text();
+      let responseJson: unknown = null;
+      if (responseText) {
+        try {
+          responseJson = JSON.parse(responseText);
+        } catch {
+          responseJson = responseText;
+        }
+      }
+
+      if (!response.ok) {
+        throw new Error(
+          `Plunk template email send failed (${response.status}): ${
+            typeof responseJson === "string" ? responseJson : JSON.stringify(responseJson)
+          }`,
+        );
+      }
+
+      return responseJson;
+    }
+
+    if (!fromEmail) {
+      throw new Error("Missing env: PLUNK_FROM_EMAIL");
+    }
+
+    const plunk = new Plunk(getPlunkSecretKey(), { baseUrl: getPlunkSdkBaseUrl() });
+    logServiceInitialized("plunk", {
+      apiUrl: getPlunkApiUrl(),
+      sender: fromEmail,
+      mode: "sdk",
     });
 
-    const responseText = await response.text();
-    let responseJson: unknown = null;
-    if (responseText) {
-      try {
-        responseJson = JSON.parse(responseText);
-      } catch {
-        responseJson = responseText;
-      }
-    }
-
-    if (!response.ok) {
-      throw new Error(
-        `Plunk template email send failed (${response.status}): ${
-          typeof responseJson === "string" ? responseJson : JSON.stringify(responseJson)
-        }`,
-      );
-    }
-
-    return responseJson;
+    return await plunk.emails.send({
+      to: input.to,
+      from: fromEmail,
+      name: getPlunkFromName(),
+      subject: `Your video is ready: ${title}`,
+      body: buildVideoReadyEmailHtml(data),
+      type: "html",
+      subscribed: false,
+    });
+  } catch (error) {
+    console.error("Failed to send video ready email with Plunk:", {
+      error,
+      to: input.to,
+      videoId: input.videoId,
+      seriesId: input.seriesId,
+    });
+    throw error;
   }
-
-  if (!fromEmail) {
-    throw new Error("Missing env: PLUNK_FROM_EMAIL");
-  }
-
-  const plunk = new Plunk(getPlunkSecretKey(), { baseUrl: getPlunkSdkBaseUrl() });
-  logServiceInitialized("plunk", {
-    apiUrl: getPlunkApiUrl(),
-    sender: fromEmail,
-    mode: "sdk",
-  });
-
-  return await plunk.emails.send({
-    to: input.to,
-    from: fromEmail,
-    name: getPlunkFromName(),
-    subject: `Your video is ready: ${title}`,
-    body: buildVideoReadyEmailHtml(data),
-    type: "html",
-    subscribed: false,
-  });
 }

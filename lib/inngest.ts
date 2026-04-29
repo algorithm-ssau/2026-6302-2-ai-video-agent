@@ -154,16 +154,17 @@ export const generateVideo = inngest.createFunction(
     });
 
     const renderResult = await step.run("render-mp4-and-save-url", async () => {
-      const supabase = supabaseAdmin();
-      const save = saveResult as { videoId?: string | number } | undefined;
-      const videoId = save?.videoId ? String(save.videoId) : null;
-      const captionRes = captionResult as
-        | { captions?: { words?: unknown } }
-        | undefined;
+      try {
+        const supabase = supabaseAdmin();
+        const save = saveResult as { videoId?: string | number } | undefined;
+        const videoId = save?.videoId ? String(save.videoId) : null;
+        const captionRes = captionResult as
+          | { captions?: { words?: unknown } }
+          | undefined;
 
-      if (!videoId) {
-        throw new Error("Missing video ID from save step");
-      }
+        if (!videoId) {
+          throw new Error("Missing video ID from save step");
+        }
 
       const { data: series, error: seriesError } = await supabase
         .from("video_agent_series")
@@ -246,18 +247,23 @@ export const generateVideo = inngest.createFunction(
 
       await unlink(outputPath).catch(() => undefined);
 
-      return { success: true, videoId, videoUrl };
+        return { success: true, videoId, videoUrl };
+      } catch (err) {
+        console.error("Render MP4 and save URL step failed:", { err, seriesId });
+        throw err;
+      }
     });
 
     await step.run("send-video-ready-email", async () => {
-      const supabase = supabaseAdmin();
-      const render = renderResult as { videoId?: string | number; videoUrl?: string } | undefined;
-      const videoId = render?.videoId ? String(render.videoId) : null;
-      const videoUrl = typeof render?.videoUrl === "string" ? render.videoUrl : null;
+      try {
+        const supabase = supabaseAdmin();
+        const render = renderResult as { videoId?: string | number; videoUrl?: string } | undefined;
+        const videoId = render?.videoId ? String(render.videoId) : null;
+        const videoUrl = typeof render?.videoUrl === "string" ? render.videoUrl : null;
 
-      if (!videoId || !videoUrl) {
-        throw new Error("Missing rendered video details for notification email");
-      }
+        if (!videoId || !videoUrl) {
+          throw new Error("Missing rendered video details for notification email");
+        }
 
       const { data: videoRow, error: videoError } = await supabase
         .from("videos")
@@ -301,7 +307,11 @@ export const generateVideo = inngest.createFunction(
         generatedAt: typeof videoRow.created_at === "string" ? videoRow.created_at : null,
       });
 
-      return { success: true, result };
+        return { success: true, result };
+      } catch (err) {
+        console.error("Send video ready email step failed:", { err, seriesId });
+        throw err;
+      }
     });
 
     await step.run("update-series-status", async () => {
