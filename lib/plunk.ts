@@ -38,7 +38,7 @@ function escapeHtml(value: string) {
 }
 
 function formatDuration(seconds?: number | null) {
-  if (!seconds || !Number.isFinite(seconds)) return "Ready to watch";
+  if (seconds == null || !Number.isFinite(seconds)) return "Ready to watch";
   const minutes = Math.floor(seconds / 60);
   const remainingSeconds = Math.round(seconds % 60);
   if (minutes <= 0) return `${remainingSeconds}s`;
