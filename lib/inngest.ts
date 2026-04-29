@@ -5,6 +5,7 @@ import { inngest } from "./inngest-client";
 import { generateVideoScriptStep } from "./video-steps/generate-script";
 import { generateVoiceForScript } from "./tts";
 import { supabaseAdmin } from "./supabase/admin";
+import { sendVideoReadyEmail } from "./plunk";
 import type { CaptionWord } from "@/remotion/types";
 
 const helloWorldEvent = eventType("test/hello.world");
@@ -152,7 +153,7 @@ export const generateVideo = inngest.createFunction(
       }
     });
 
-    await step.run("render-mp4-and-save-url", async () => {
+    const renderResult = await step.run("render-mp4-and-save-url", async () => {
       const supabase = supabaseAdmin();
       const save = saveResult as { videoId?: string | number } | undefined;
       const videoId = save?.videoId ? String(save.videoId) : null;
@@ -246,6 +247,61 @@ export const generateVideo = inngest.createFunction(
       await unlink(outputPath).catch(() => undefined);
 
       return { success: true, videoId, videoUrl };
+    });
+
+    await step.run("send-video-ready-email", async () => {
+      const supabase = supabaseAdmin();
+      const render = renderResult as { videoId?: string | number; videoUrl?: string } | undefined;
+      const videoId = render?.videoId ? String(render.videoId) : null;
+      const videoUrl = typeof render?.videoUrl === "string" ? render.videoUrl : null;
+
+      if (!videoId || !videoUrl) {
+        throw new Error("Missing rendered video details for notification email");
+      }
+
+      const { data: videoRow, error: videoError } = await supabase
+        .from("videos")
+        .select("id, series_id, user_id, title, video_url, images, duration_seconds, scene_count, created_at")
+        .eq("id", videoId)
+        .single();
+
+      if (videoError || !videoRow) {
+        throw new Error(`Could not load rendered video for email: ${videoError?.message || "not found"}`);
+      }
+
+      const ownerId = typeof videoRow.user_id === "string" ? videoRow.user_id : null;
+      if (!ownerId) {
+        throw new Error("Rendered video has no user_id for notification email");
+      }
+
+      const { data: userRow, error: userError } = await supabase
+        .from("users")
+        .select("email, name")
+        .eq("clerk_id", ownerId)
+        .single();
+
+      if (userError || !userRow?.email) {
+        throw new Error(`Could not load recipient for video email: ${userError?.message || "missing email"}`);
+      }
+
+      const images = Array.isArray(videoRow.images) ? (videoRow.images as unknown[]) : [];
+      const thumbnailUrl = images.find((image): image is string => typeof image === "string" && image.length > 0);
+
+      const result = await sendVideoReadyEmail({
+        to: userRow.email,
+        userName: typeof userRow.name === "string" ? userRow.name : null,
+        title: typeof videoRow.title === "string" ? videoRow.title : null,
+        videoUrl,
+        seriesId: videoRow.series_id ?? seriesId,
+        videoId: videoRow.id ?? videoId,
+        thumbnailUrl,
+        durationSeconds:
+          typeof videoRow.duration_seconds === "number" ? videoRow.duration_seconds : null,
+        sceneCount: typeof videoRow.scene_count === "number" ? videoRow.scene_count : null,
+        generatedAt: typeof videoRow.created_at === "string" ? videoRow.created_at : null,
+      });
+
+      return { success: true, result };
     });
 
     await step.run("update-series-status", async () => {
