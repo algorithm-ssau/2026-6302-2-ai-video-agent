@@ -10,27 +10,33 @@ type RouteContext = {
 }
 
 export async function GET(_: Request, context: RouteContext) {
-  const { userId } = await auth()
+  try {
+    const { userId } = await auth()
 
-  if (!userId) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
+    if (!userId) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
+    }
+
+    const { id } = await context.params
+    const supabase = supabaseAdmin()
+
+    const { data, error } = await supabase
+      .from("video_agent_series")
+      .select("*")
+      .eq("id", id)
+      .eq("user_id", userId)
+      .single()
+
+    if (error) {
+      console.error("Failed to load series:", error)
+      return NextResponse.json({ error: error.message }, { status: 500 })
+    }
+
+    return NextResponse.json({ series: data })
+  } catch (error) {
+    console.error("Unexpected error in GET /api/series/[id]:", error)
+    return NextResponse.json({ error: "Failed to load series" }, { status: 500 })
   }
-
-  const { id } = await context.params
-  const supabase = supabaseAdmin()
-
-  const { data, error } = await supabase
-    .from("video_agent_series")
-    .select("*")
-    .eq("id", id)
-    .eq("user_id", userId)
-    .single()
-
-  if (error) {
-    return NextResponse.json({ error: error.message }, { status: 500 })
-  }
-
-  return NextResponse.json({ series: data })
 }
 
 export async function PATCH(request: Request, context: RouteContext) {
@@ -58,6 +64,7 @@ export async function PATCH(request: Request, context: RouteContext) {
       .single()
 
     if (fetchError) {
+      console.error("Failed to load series before update action:", fetchError)
       return NextResponse.json({ error: fetchError.message }, { status: 500 })
     }
 
@@ -89,6 +96,7 @@ export async function PATCH(request: Request, context: RouteContext) {
         .eq("user_id", userId)
 
       if (error) {
+        console.error("Failed to update series pause state:", error)
         return NextResponse.json({ error: error.message }, { status: 500 })
       }
 
@@ -96,7 +104,7 @@ export async function PATCH(request: Request, context: RouteContext) {
     }
 
     if (body.action === "trigger") {
-      await supabase
+      const { error: updateError } = await supabase
         .from("video_agent_series")
         .update({
           status: "processing",
@@ -109,13 +117,23 @@ export async function PATCH(request: Request, context: RouteContext) {
         .eq("id", id)
         .eq("user_id", userId)
 
-      await inngest.send({
-        name: "video/generate",
-        data: {
-          seriesId: id,
-          userId,
-        },
-      })
+      if (updateError) {
+        console.error("Failed to mark series as processing before trigger:", updateError)
+        return NextResponse.json({ error: updateError.message }, { status: 500 })
+      }
+
+      try {
+        await inngest.send({
+          name: "video/generate",
+          data: {
+            seriesId: id,
+            userId,
+          },
+        })
+      } catch (error) {
+        console.error("Failed to send video generation event from series trigger:", error)
+        return NextResponse.json({ error: "Failed to trigger video generation" }, { status: 500 })
+      }
 
       return NextResponse.json({ ok: true })
     }
@@ -207,6 +225,7 @@ export async function PATCH(request: Request, context: RouteContext) {
     .single()
 
   if (error) {
+    console.error("Failed to update series:", error)
     return NextResponse.json({ error: error.message }, { status: 500 })
   }
 
@@ -214,24 +233,30 @@ export async function PATCH(request: Request, context: RouteContext) {
 }
 
 export async function DELETE(_: Request, context: RouteContext) {
-  const { userId } = await auth()
+  try {
+    const { userId } = await auth()
 
-  if (!userId) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
+    if (!userId) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
+    }
+
+    const { id } = await context.params
+    const supabase = supabaseAdmin()
+
+    const { error } = await supabase
+      .from("video_agent_series")
+      .delete()
+      .eq("id", id)
+      .eq("user_id", userId)
+
+    if (error) {
+      console.error("Failed to delete series:", error)
+      return NextResponse.json({ error: error.message }, { status: 500 })
+    }
+
+    return NextResponse.json({ ok: true })
+  } catch (error) {
+    console.error("Unexpected error in DELETE /api/series/[id]:", error)
+    return NextResponse.json({ error: "Failed to delete series" }, { status: 500 })
   }
-
-  const { id } = await context.params
-  const supabase = supabaseAdmin()
-
-  const { error } = await supabase
-    .from("video_agent_series")
-    .delete()
-    .eq("id", id)
-    .eq("user_id", userId)
-
-  if (error) {
-    return NextResponse.json({ error: error.message }, { status: 500 })
-  }
-
-  return NextResponse.json({ ok: true })
 }
