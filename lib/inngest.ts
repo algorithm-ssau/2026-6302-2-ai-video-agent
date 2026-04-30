@@ -10,6 +10,118 @@ import type { CaptionWord } from "@/remotion/types";
 
 const helloWorldEvent = eventType("test/hello.world");
 const videoGenerateEvent = eventType("video/generate");
+const dispatchSeriesPublishEvent = eventType("series/publish.dispatch");
+
+type StepPayloadRecord = Record<string, unknown>;
+
+function asRecord(value: unknown): StepPayloadRecord {
+  return value && typeof value === "object" ? (value as StepPayloadRecord) : {};
+}
+
+function getDateKey(date: Date) {
+  return date.toISOString().slice(0, 10);
+}
+
+function getMinuteOfDay(date: Date) {
+  return date.getUTCHours() * 60 + date.getUTCMinutes();
+}
+
+function getPublishAndGenerationMinute(publishTime: string) {
+  const parsed = new Date(publishTime);
+  if (Number.isNaN(parsed.getTime())) return null;
+  const publishMinute = getMinuteOfDay(parsed);
+  const generationMinute = (publishMinute - 120 + 24 * 60) % (24 * 60);
+  return { publishMinute, generationMinute };
+}
+
+async function dispatchSeriesPlatforms({
+  seriesId,
+  userId,
+  selectedPlatforms,
+  videoUrl,
+  videoId,
+}: {
+  seriesId: string;
+  userId: string;
+  selectedPlatforms: string[];
+  videoUrl: string;
+  videoId: string;
+}) {
+  const supabase = supabaseAdmin();
+  const normalizedPlatforms = selectedPlatforms.map((p) => p.toLowerCase());
+
+  const { data: videoRow, error: videoError } = await supabase
+    .from("videos")
+    .select("id, title, images, duration_seconds, scene_count, created_at")
+    .eq("id", videoId)
+    .single();
+
+  if (videoError || !videoRow) {
+    throw new Error(`Could not load video for platform dispatch: ${videoError?.message || "not found"}`);
+  }
+
+  const { data: userRow, error: userError } = await supabase
+    .from("users")
+    .select("email, name")
+    .eq("clerk_id", userId)
+    .single();
+
+  if (userError) {
+    throw new Error(`Could not load user for platform dispatch: ${userError.message}`);
+  }
+
+  const results: Record<string, unknown> = {};
+  const images = Array.isArray(videoRow.images) ? (videoRow.images as unknown[]) : [];
+  const thumbnailUrl = images.find((image): image is string => typeof image === "string" && image.length > 0) || null;
+
+  if (normalizedPlatforms.includes("email")) {
+    if (!userRow?.email) {
+      throw new Error("Selected platform includes email, but user email is missing");
+    }
+
+    const emailResult = await sendVideoReadyEmail({
+      to: userRow.email,
+      userName: typeof userRow.name === "string" ? userRow.name : null,
+      title: typeof videoRow.title === "string" ? videoRow.title : null,
+      videoUrl,
+      seriesId,
+      videoId,
+      thumbnailUrl,
+      durationSeconds:
+        typeof videoRow.duration_seconds === "number" ? videoRow.duration_seconds : null,
+      sceneCount: typeof videoRow.scene_count === "number" ? videoRow.scene_count : null,
+      generatedAt: typeof videoRow.created_at === "string" ? videoRow.created_at : null,
+    });
+
+    results.email = { success: true, result: emailResult };
+  }
+
+  if (normalizedPlatforms.includes("youtube")) {
+    results.youtube = {
+      success: true,
+      placeholder: true,
+      message: "YouTube publish placeholder (integration pending)",
+    };
+  }
+
+  if (normalizedPlatforms.includes("instagram") || normalizedPlatforms.includes("vk")) {
+    results.instagram = {
+      success: true,
+      placeholder: true,
+      message: "Instagram publish placeholder (integration pending)",
+    };
+  }
+
+  if (normalizedPlatforms.includes("tiktok")) {
+    results.tiktok = {
+      success: true,
+      placeholder: true,
+      message: "TikTok publish placeholder (integration pending)",
+    };
+  }
+
+  return results;
+}
 
 function normalizeCaptionWords(input: unknown): CaptionWord[] {
   if (!Array.isArray(input)) return [];
@@ -50,6 +162,13 @@ export const generateVideo = inngest.createFunction(
   },
   async ({ event, step }) => {
     const { seriesId, userId } = event.data;
+    const skipReadyEmail = event.data && typeof event.data === "object" && event.data.skipReadyEmail === true;
+    const runPublishAfterGeneration =
+      event.data && typeof event.data === "object" && event.data.runPublishAfterGeneration === true;
+    const selectedPlatformsFromEvent =
+      event.data && typeof event.data === "object" && Array.isArray(event.data.selectedPlatforms)
+        ? (event.data.selectedPlatforms as unknown[]).filter((p): p is string => typeof p === "string")
+        : null;
 
     if (typeof seriesId !== "string" || !seriesId) {
       throw new Error("Invalid event data: seriesId must be a non-empty string");
@@ -255,6 +374,10 @@ export const generateVideo = inngest.createFunction(
     });
 
     await step.run("send-video-ready-email", async () => {
+      if (skipReadyEmail) {
+        return { success: true, skipped: true };
+      }
+
       try {
         const supabase = supabaseAdmin();
         const render = renderResult as { videoId?: string | number; videoUrl?: string } | undefined;
@@ -319,6 +442,44 @@ export const generateVideo = inngest.createFunction(
       return { success: true };
     });
 
+    await step.run("dispatch-platforms-after-generation", async () => {
+      if (!runPublishAfterGeneration) {
+        return { success: true, skipped: true };
+      }
+
+      const render = renderResult as { videoId?: string | number; videoUrl?: string } | undefined;
+      const videoId = render?.videoId ? String(render.videoId) : null;
+      const videoUrl = typeof render?.videoUrl === "string" ? render.videoUrl : null;
+
+      if (!videoId || !videoUrl) {
+        throw new Error("Missing rendered video details for platform dispatch");
+      }
+
+      let selectedPlatforms = selectedPlatformsFromEvent;
+      if (!selectedPlatforms || selectedPlatforms.length === 0) {
+        const supabase = supabaseAdmin();
+        const { data: seriesRow } = await supabase
+          .from("video_agent_series")
+          .select("selected_platforms")
+          .eq("id", seriesId)
+          .single();
+
+        selectedPlatforms = Array.isArray(seriesRow?.selected_platforms)
+          ? (seriesRow.selected_platforms as unknown[]).filter((p): p is string => typeof p === "string")
+          : [];
+      }
+
+      const result = await dispatchSeriesPlatforms({
+        seriesId,
+        userId,
+        selectedPlatforms,
+        videoId,
+        videoUrl,
+      });
+
+      return { success: true, result };
+    });
+
     return {
       success: true,
       seriesId,
@@ -328,7 +489,177 @@ export const generateVideo = inngest.createFunction(
   }
 );
 
+export const dispatchSeriesPublish = inngest.createFunction(
+  {
+    id: "dispatch-series-publish",
+    name: "Dispatch Series Publish",
+    triggers: [dispatchSeriesPublishEvent],
+  },
+  async ({ event, step }) => {
+    const { seriesId, userId } = event.data;
+
+    if (typeof seriesId !== "string" || !seriesId) {
+      throw new Error("Invalid event data: seriesId must be a non-empty string");
+    }
+
+    if (typeof userId !== "string" || !userId) {
+      throw new Error("Invalid event data: userId must be a non-empty string");
+    }
+
+    const selectedPlatforms =
+      Array.isArray(event.data?.selectedPlatforms)
+        ? event.data.selectedPlatforms.filter((p): p is string => typeof p === "string")
+        : [];
+
+    return await step.run("dispatch-platforms", async () => {
+      const supabase = supabaseAdmin();
+      const { data: latestVideo, error: latestVideoError } = await supabase
+        .from("videos")
+        .select("id, video_url")
+        .eq("series_id", seriesId)
+        .eq("status", "rendered")
+        .not("video_url", "is", null)
+        .order("created_at", { ascending: false })
+        .limit(1)
+        .single();
+
+      if (latestVideoError || !latestVideo?.video_url) {
+        throw new Error(
+          `No rendered video available for publish dispatch: ${latestVideoError?.message || "missing video_url"}`,
+        );
+      }
+
+      const result = await dispatchSeriesPlatforms({
+        seriesId,
+        userId,
+        selectedPlatforms,
+        videoId: String(latestVideo.id),
+        videoUrl: String(latestVideo.video_url),
+      });
+
+      return { success: true, result };
+    });
+  },
+);
+
+export const runSeriesScheduler = inngest.createFunction(
+  {
+    id: "run-series-scheduler",
+    name: "Run Series Scheduler",
+    triggers: [{ cron: "*/1 * * * *" }],
+  },
+  async ({ step }) => {
+    const now = new Date();
+    const todayKey = getDateKey(now);
+    const nowMinute = getMinuteOfDay(now);
+    const supabase = supabaseAdmin();
+
+    const activeSeries = await step.run("load-active-series", async () => {
+      const response = await supabase
+        .from("video_agent_series")
+        .select("id, user_id, publish_time, selected_platforms, step_payload, status")
+        .eq("status", "active");
+
+      if (response.error) throw response.error;
+      return response.data ?? [];
+    });
+
+    if (!Array.isArray(activeSeries)) {
+      throw new Error("Failed to load active series for scheduler");
+    }
+
+    const generationEvents: Array<{ name: "video/generate"; data: Record<string, unknown> }> = [];
+    const dispatchEvents: Array<{ name: "series/publish.dispatch"; data: Record<string, unknown> }> = [];
+
+    for (const item of activeSeries as Array<Record<string, unknown>>) {
+      const seriesId = item.id != null ? String(item.id) : "";
+      const userId = typeof item.user_id === "string" ? item.user_id : "";
+      const publishTime = typeof item.publish_time === "string" ? item.publish_time : null;
+      const selectedPlatforms = Array.isArray(item.selected_platforms)
+        ? (item.selected_platforms as unknown[]).filter((p): p is string => typeof p === "string")
+        : [];
+      const stepPayload = asRecord(item.step_payload);
+
+      if (!seriesId || !userId || !publishTime) continue;
+      if (stepPayload.isPaused === true) continue;
+
+      const minutes = getPublishAndGenerationMinute(publishTime);
+      if (!minutes) continue;
+
+      const workflow = asRecord(stepPayload.workflowSchedule);
+      const lastGenerationDate = typeof workflow.lastGenerationDate === "string" ? workflow.lastGenerationDate : null;
+      const lastPublishDispatchDate =
+        typeof workflow.lastPublishDispatchDate === "string" ? workflow.lastPublishDispatchDate : null;
+
+      let shouldUpdateWorkflow = false;
+      const nextWorkflow: StepPayloadRecord = { ...workflow };
+
+      if (nowMinute === minutes.generationMinute && lastGenerationDate !== todayKey) {
+        generationEvents.push({
+          name: "video/generate",
+          data: {
+            seriesId,
+            userId,
+            skipReadyEmail: true,
+          },
+        });
+        nextWorkflow.lastGenerationDate = todayKey;
+        shouldUpdateWorkflow = true;
+      }
+
+      if (nowMinute === minutes.publishMinute && lastPublishDispatchDate !== todayKey) {
+        dispatchEvents.push({
+          name: "series/publish.dispatch",
+          data: {
+            seriesId,
+            userId,
+            selectedPlatforms,
+          },
+        });
+        nextWorkflow.lastPublishDispatchDate = todayKey;
+        shouldUpdateWorkflow = true;
+      }
+
+      if (shouldUpdateWorkflow) {
+        const updatedPayload = {
+          ...stepPayload,
+          workflowSchedule: nextWorkflow,
+        };
+
+        await supabase
+          .from("video_agent_series")
+          .update({
+            step_payload: updatedPayload,
+            updated_at: new Date().toISOString(),
+          })
+          .eq("id", seriesId);
+      }
+    }
+
+    if (generationEvents.length > 0) {
+      await step.run("trigger-generation-events", async () => {
+        await inngest.send(generationEvents);
+        return { count: generationEvents.length };
+      });
+    }
+
+    if (dispatchEvents.length > 0) {
+      await step.run("trigger-dispatch-events", async () => {
+        await inngest.send(dispatchEvents);
+        return { count: dispatchEvents.length };
+      });
+    }
+
+    return {
+      success: true,
+      scanned: activeSeries.length,
+      generationEvents: generationEvents.length,
+      dispatchEvents: dispatchEvents.length,
+    };
+  },
+);
+
 export default serve({
   client: inngest,
-  functions: [helloWorld, generateVideo],
+  functions: [helloWorld, generateVideo, dispatchSeriesPublish, runSeriesScheduler],
 });

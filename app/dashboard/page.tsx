@@ -136,7 +136,7 @@ export default function DashboardPage() {
 
   async function handleSeriesAction(
     id: number,
-    action: "pause" | "resume" | "trigger" | "delete",
+    action: "pause" | "resume" | "trigger" | "execute-workflow" | "delete",
   ) {
     if (actionSeriesId !== null) return
 
@@ -207,7 +207,7 @@ export default function DashboardPage() {
         }),
       )
 
-      if (action === "trigger") {
+      if (action === "trigger" || action === "execute-workflow") {
         router.push(`/dashboard/videos?seriesId=${id}&generating=1`)
       }
     } catch (err) {
@@ -429,6 +429,18 @@ export default function DashboardPage() {
                       >
                         <Sparkles className="size-4" />
                         {isBusy ? "Working..." : "Generate now"}
+                      </button>
+                    </div>
+                    <div>
+                      <button
+                        type="button"
+                        onClick={() =>
+                          void handleSeriesAction(item.id, "execute-workflow")
+                        }
+                        disabled={isBusy || isPaused}
+                        className="inline-flex w-full items-center justify-center rounded-lg border border-slate-200 px-3 py-2 text-xs font-medium text-slate-700 transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-400"
+                      >
+                        {isBusy ? "Working..." : "Execute workflow"}
                       </button>
                     </div>
                   </div>

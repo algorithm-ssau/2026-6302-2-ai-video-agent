@@ -5,7 +5,17 @@ import Link from "next/link"
 import Image from "next/image"
 import { UserButton } from "@clerk/nextjs"
 
-const Icon = ({ name }: { name: string }) => {
+type NavIconName = "series" | "videos" | "guides" | "billing" | "settings"
+
+const NAV_ITEMS: Array<{ href: string; label: string; icon: NavIconName }> = [
+  { href: "/dashboard", label: "Series", icon: "series" },
+  { href: "/dashboard/videos", label: "Videos", icon: "videos" },
+  { href: "#", label: "Guides", icon: "guides" },
+  { href: "#", label: "Billing", icon: "billing" },
+  { href: "/dashboard/settings", label: "Settings", icon: "settings" },
+]
+
+const Icon = ({ name }: { name: NavIconName }) => {
   const common = { width: 20, height: 20, className: "inline-block mr-3" }
   switch (name) {
     case "series":
@@ -68,36 +78,14 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
 
         <nav className="flex-1 px-2 py-4">
           <ul className="space-y-1">
-            <li>
-              <Link href="/dashboard" className="flex items-center text-lg py-3 px-3 rounded-md hover:bg-gray-100">
-                <Icon name="series" />
-                Series
-              </Link>
-            </li>
-            <li>
-              <Link href="/dashboard/videos" className="flex items-center text-lg py-3 px-3 rounded-md hover:bg-gray-100">
-                <Icon name="videos" />
-                Videos
-              </Link>
-            </li>
-            <li>
-              <Link href="#" className="flex items-center text-lg py-3 px-3 rounded-md hover:bg-gray-100">
-                <Icon name="guides" />
-                Guides
-              </Link>
-            </li>
-            <li>
-              <Link href="#" className="flex items-center text-lg py-3 px-3 rounded-md hover:bg-gray-100">
-                <Icon name="billing" />
-                Billing
-              </Link>
-            </li>
-            <li>
-              <Link href="#" className="flex items-center text-lg py-3 px-3 rounded-md hover:bg-gray-100">
-                <Icon name="settings" />
-                Settings
-              </Link>
-            </li>
+            {NAV_ITEMS.map((item) => (
+              <li key={item.label}>
+                <Link href={item.href} className="flex items-center text-lg py-3 px-3 rounded-md hover:bg-gray-100">
+                  <Icon name={item.icon} />
+                  {item.label}
+                </Link>
+              </li>
+            ))}
           </ul>
         </nav>
 
