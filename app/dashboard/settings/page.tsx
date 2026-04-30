@@ -32,6 +32,14 @@ const SOCIALS: Array<{ id: Platform; title: string; description: string }> = [
   },
 ]
 
+const CONNECTIONS_API_URL = "/api/social/connections"
+const DELETE_ACCOUNT_API_URL = "/api/account"
+const DELETE_CONFIRM_TEXT = "DELETE"
+
+function getErrorMessage(error: unknown, fallback = "Unknown error"): string {
+  return error instanceof Error ? error.message : fallback
+}
+
 export default function SettingsPage() {
   const router = useRouter()
   const searchParams = useSearchParams()
@@ -53,11 +61,11 @@ export default function SettingsPage() {
   }, [connections])
 
   useEffect(() => {
-    const run = async () => {
+    async function loadConnections() {
       setIsLoading(true)
       setError(null)
       try {
-        const res = await fetch("/api/social/connections")
+        const res = await fetch(CONNECTIONS_API_URL)
         if (!res.ok) {
           const body = await res.json().catch(() => ({}))
           throw new Error(body.error || "Failed to load connections")
@@ -65,12 +73,13 @@ export default function SettingsPage() {
         const body = (await res.json()) as { connections?: SocialConnection[] }
         setConnections(Array.isArray(body.connections) ? body.connections : [])
       } catch (err) {
-        setError(err instanceof Error ? err.message : "Unknown error")
+        setError(getErrorMessage(err))
       } finally {
         setIsLoading(false)
       }
     }
-    void run()
+
+    void loadConnections()
   }, [])
 
   function onConnect(platform: Platform) {
@@ -82,12 +91,12 @@ export default function SettingsPage() {
     const confirmText = window.prompt(
       'Type "DELETE" to remove your account and all related data permanently.',
     )
-    if (confirmText !== "DELETE") return
+    if (confirmText !== DELETE_CONFIRM_TEXT) return
 
     setIsDeleting(true)
     setError(null)
     try {
-      const res = await fetch("/api/account", { method: "DELETE" })
+      const res = await fetch(DELETE_ACCOUNT_API_URL, { method: "DELETE" })
       if (!res.ok) {
         const body = await res.json().catch(() => ({}))
         throw new Error(body.error || "Failed to delete account")
@@ -95,7 +104,7 @@ export default function SettingsPage() {
       await signOut({ redirectUrl: "/" })
       router.push("/")
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Unknown error")
+      setError(getErrorMessage(err))
     } finally {
       setIsDeleting(false)
     }
