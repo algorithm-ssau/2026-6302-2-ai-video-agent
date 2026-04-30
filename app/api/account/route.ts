@@ -11,10 +11,27 @@ export async function DELETE() {
     }
 
     const supabase = supabaseAdmin()
-    await supabase.from("social_connections").delete().eq("user_id", userId)
-    await supabase.from("video_agent_series").delete().eq("user_id", userId)
-    await supabase.from("users").delete().eq("clerk_id", userId)
 
+    const socialConnectionsDelete = await supabase
+      .from("social_connections")
+      .delete()
+      .eq("user_id", userId)
+    if (socialConnectionsDelete.error) {
+      throw socialConnectionsDelete.error
+    }
+
+    const videoAgentSeriesDelete = await supabase
+      .from("video_agent_series")
+      .delete()
+      .eq("user_id", userId)
+    if (videoAgentSeriesDelete.error) {
+      throw videoAgentSeriesDelete.error
+    }
+
+    const usersDelete = await supabase.from("users").delete().eq("clerk_id", userId)
+    if (usersDelete.error) {
+      throw usersDelete.error
+    }
     const clerk = await clerkClient()
     await clerk.users.deleteUser(userId)
 
