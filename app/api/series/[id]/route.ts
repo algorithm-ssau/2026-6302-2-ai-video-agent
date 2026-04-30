@@ -103,7 +103,7 @@ export async function PATCH(request: Request, context: RouteContext) {
       return NextResponse.json({ ok: true })
     }
 
-    if (body.action === "trigger") {
+    if (body.action === "trigger" || body.action === "execute-workflow") {
       const { error: updateError } = await supabase
         .from("video_agent_series")
         .update({
@@ -123,11 +123,40 @@ export async function PATCH(request: Request, context: RouteContext) {
       }
 
       try {
+        const isExecuteWorkflow = body.action === "execute-workflow"
+        let selectedPlatforms: string[] = []
+
+        if (isExecuteWorkflow) {
+          const { data: seriesRow, error: seriesLoadError } = await supabase
+            .from("video_agent_series")
+            .select("selected_platforms")
+            .eq("id", id)
+            .eq("user_id", userId)
+            .single()
+
+          if (seriesLoadError) {
+            throw new Error(seriesLoadError.message)
+          }
+
+          selectedPlatforms = Array.isArray(seriesRow?.selected_platforms)
+            ? seriesRow.selected_platforms.filter(
+                (platform): platform is string => typeof platform === "string",
+              )
+            : []
+        }
+
         await inngest.send({
           name: "video/generate",
           data: {
             seriesId: id,
             userId,
+            ...(isExecuteWorkflow
+              ? {
+                  runPublishAfterGeneration: true,
+                  selectedPlatforms,
+                  skipReadyEmail: true,
+                }
+              : {}),
           },
         })
       } catch (error) {
