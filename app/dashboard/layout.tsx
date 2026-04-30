@@ -93,7 +93,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
               </Link>
             </li>
             <li>
-              <Link href="#" className="flex items-center text-lg py-3 px-3 rounded-md hover:bg-gray-100">
+              <Link href="/dashboard/settings" className="flex items-center text-lg py-3 px-3 rounded-md hover:bg-gray-100">
                 <Icon name="settings" />
                 Settings
               </Link>
