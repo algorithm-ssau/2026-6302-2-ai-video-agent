@@ -23,7 +23,7 @@ function getDateKey(date: Date) {
 }
 
 function getMinuteOfDay(date: Date) {
-  return date.getHours() * 60 + date.getMinutes();
+  return date.getUTCHours() * 60 + date.getUTCMinutes();
 }
 
 function getPublishAndGenerationMinute(publishTime: string) {
