@@ -68,7 +68,8 @@ function getClientSecret(platform: SocialPlatform): string {
 function getRedirectUri(platform: SocialPlatform): string {
   const appBaseUrl = getAppBaseUrl()
   if (!appBaseUrl) throw new Error("Missing env: NEXT_PUBLIC_APP_URL (or APP_URL)")
-  return `${appBaseUrl}/api/social/callback/${platform}`
+  const normalizedAppBaseUrl = appBaseUrl.replace(/\/+$/, "")
+  return `${normalizedAppBaseUrl}/api/social/callback/${platform}`
 }
 
 export function buildOauthUrl(platform: SocialPlatform, state: string): string {
