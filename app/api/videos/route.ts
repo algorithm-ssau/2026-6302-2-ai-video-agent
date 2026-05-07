@@ -1,6 +1,5 @@
 import { auth } from "@clerk/nextjs/server"
 import { NextResponse } from "next/server"
-
 import { listVideosForUser } from "@/lib/videos-list"
 
 export async function GET(request: Request) {
