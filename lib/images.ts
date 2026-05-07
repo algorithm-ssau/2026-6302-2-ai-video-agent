@@ -15,7 +15,7 @@ export async function generateImagesForScript(seriesId: string, script: VideoScr
   const hfKey = getHuggingFaceKey();
 
   // Use the new InferenceClient (JS SDK). Avoid HfInference which is deprecated.
-  async function callHfImage(prompt: string): Promise<{ url: string } | { error: string } | null> {
+  async function callHfImage(prompt: string): Promise<{ url: string } | { error: string }> {
     const models = ["black-forest-labs/FLUX.1-schnell", "stabilityai/stable-diffusion-xl-base-1.0"];
 
     // Minimal client typing we expect from the SDK
@@ -29,26 +29,45 @@ export async function generateImagesForScript(seriesId: string, script: VideoScr
     const InferenceClientCtor = (mod as unknown as { InferenceClient: new (token?: string | { token?: string }) => unknown }).InferenceClient;
     const client = new InferenceClientCtor(hfKey) as unknown as HfClientLike;
 
+    const errors: string[] = [];
+
     for (const model of models) {
       try {
         const response = await client.textToImage({ model, inputs: prompt, parameters: { guidance_scale: 3.5 } });
+        if (!response || typeof response.arrayBuffer !== "function") {
+          const msg = `${model}: no valid response`;
+          console.error(msg);
+          errors.push(msg);
+          continue;
+        }
         const arrayBuffer = await response.arrayBuffer();
+        if (!arrayBuffer || (arrayBuffer as ArrayBuffer).byteLength === 0) {
+          const msg = `${model}: empty image buffer`;
+          console.error(msg);
+          errors.push(msg);
+          continue;
+        }
         const buffer = Buffer.from(arrayBuffer);
         const bucket = "images";
         const path = `series/${seriesId}/images/${Date.now()}.png`;
         const { error: uploadError } = await supabase.storage.from(bucket).upload(path, buffer, { contentType: "image/png", upsert: true });
         if (uploadError) {
-          return { error: String(uploadError) };
+          const msg = `${model}: upload error ${String(uploadError)}`;
+          console.error(msg);
+          errors.push(msg);
+          continue;
         }
         const { data: publicData } = supabase.storage.from(bucket).getPublicUrl(path);
         return { url: publicData.publicUrl };
       } catch (e) {
-        // If model fails (loading, rate limit, etc.), try next model.
-        // Continue to next candidate model.
+        const msg = e instanceof Error ? e.message : String(e);
+        console.error(`Hugging Face model ${model} failed:`, e);
+        errors.push(`${model}: ${msg}`);
         continue;
       }
     }
-    return null;
+
+    return { error: `All models failed: ${errors.join(" | ")}` };
   }
 
   for (let i = 0; i < script.scenes.length; i++) {
