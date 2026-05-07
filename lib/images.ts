@@ -2,6 +2,24 @@ import { supabaseAdmin } from "./supabase/admin";
 import { getHuggingFaceKey } from "./env";
 import { VideoScript } from "./video-script-generator";
 
+// Simple in-process rate limiter: allow HF_RATE_LIMIT_MAX requests per HF_RATE_LIMIT_WINDOW_MS window.
+const HF_RATE_LIMIT_WINDOW_MS = 90_000;
+const HF_RATE_LIMIT_MAX = 2;
+let hfRequestTimestamps: number[] = [];
+
+async function acquireHfSlot() {
+  const now = Date.now();
+  hfRequestTimestamps = hfRequestTimestamps.filter((t) => now - t < HF_RATE_LIMIT_WINDOW_MS);
+  if (hfRequestTimestamps.length < HF_RATE_LIMIT_MAX) {
+    hfRequestTimestamps.push(now);
+    return;
+  }
+  const earliest = Math.min(...hfRequestTimestamps);
+  const waitMs = HF_RATE_LIMIT_WINDOW_MS - (now - earliest) + 50;
+  await new Promise((res) => setTimeout(res, waitMs));
+  return acquireHfSlot();
+}
+
 // Generate images using Hugging Face Inference API and upload results to Supabase Storage.
 export async function generateImagesForScript(seriesId: string, script: VideoScript) {
   const supabase = supabaseAdmin();
@@ -16,7 +34,7 @@ export async function generateImagesForScript(seriesId: string, script: VideoScr
 
   // Use the new InferenceClient (JS SDK). Avoid HfInference which is deprecated.
   async function callHfImage(prompt: string): Promise<{ url: string } | { error: string }> {
-    const models = ["black-forest-labs/FLUX.1-schnell", "stabilityai/stable-diffusion-xl-base-1.0"];
+    const models = ["stabilityai/stable-diffusion-xl-base-1.0"];
 
     // Minimal client typing we expect from the SDK
     type HfResponseLike = { arrayBuffer: () => Promise<ArrayBuffer> };
@@ -33,6 +51,7 @@ export async function generateImagesForScript(seriesId: string, script: VideoScr
 
     for (const model of models) {
       try {
+        await acquireHfSlot();
         const response = await client.textToImage({ model, inputs: prompt, parameters: { guidance_scale: 3.5 } });
         if (!response || typeof response.arrayBuffer !== "function") {
           const msg = `${model}: no valid response`;
