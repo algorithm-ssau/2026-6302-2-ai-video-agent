@@ -79,6 +79,8 @@ export function VideosClient({
   )
   const [generatingTimedOut, setGeneratingTimedOut] = useState(false)
   const [pollNote, setPollNote] = useState<string | null>(null)
+  const [publishingVideoId, setPublishingVideoId] = useState<string | null>(null)
+  const [publishNotes, setPublishNotes] = useState<Record<string, string>>({})
   const startedAtRef = useRef<number | null>(null)
 
   const seriesId = initialSeriesId
@@ -161,6 +163,40 @@ export function VideosClient({
       if (intervalId) clearInterval(intervalId)
     }
   }, [initialGenerating, seriesId, refetchVideos, router])
+
+  const publishVideo = useCallback(async (videoId: string) => {
+    if (publishingVideoId) return
+    setPublishingVideoId(videoId)
+    setPublishNotes((prev) => ({ ...prev, [videoId]: "" }))
+    try {
+      const res = await fetch(`/api/videos/${encodeURIComponent(videoId)}/publish`, {
+        method: "POST",
+      })
+      const data = (await res.json().catch(() => ({}))) as {
+        error?: string
+        total?: number
+        failures?: number
+      }
+      if (!res.ok) {
+        throw new Error(data.error || "Failed to publish video")
+      }
+
+      const total = typeof data.total === "number" ? data.total : 0
+      const failures = typeof data.failures === "number" ? data.failures : 0
+      const successCount = Math.max(0, total - failures)
+      setPublishNotes((prev) => ({
+        ...prev,
+        [videoId]: `Published to ${successCount}/${total} communities`,
+      }))
+    } catch (error) {
+      setPublishNotes((prev) => ({
+        ...prev,
+        [videoId]: error instanceof Error ? error.message : "Failed to publish",
+      }))
+    } finally {
+      setPublishingVideoId(null)
+    }
+  }, [publishingVideoId])
 
   return (
     <div className="mx-auto max-w-7xl space-y-8">
@@ -250,6 +286,11 @@ export function VideosClient({
               const title = v.title?.trim() || "Untitled"
               const sid = v.series_id != null ? String(v.series_id) : "—"
               const videoUrl = typeof v.video_url === "string" ? v.video_url : null
+              const status = (v.status || "").toLowerCase()
+              const canPublish = Boolean(videoUrl) && status === "rendered"
+              const cardId = String(v.id)
+              const isPublishing = publishingVideoId === cardId
+              const publishNote = publishNotes[cardId]
 
               return (
                 <article
@@ -304,14 +345,29 @@ export function VideosClient({
                     </div>
                     {videoUrl ? (
                       <div className="pt-2">
-                        <a
-                          href={videoUrl}
-                          target="_blank"
-                          rel="noreferrer"
-                          className="inline-flex items-center rounded-lg bg-slate-900 px-3 py-2 text-sm font-semibold text-white hover:bg-slate-800"
-                        >
-                          Open MP4
-                        </a>
+                        <div className="flex flex-wrap gap-2">
+                          <a
+                            href={videoUrl}
+                            target="_blank"
+                            rel="noreferrer"
+                            className="inline-flex items-center rounded-lg bg-slate-900 px-3 py-2 text-sm font-semibold text-white hover:bg-slate-800"
+                          >
+                            Open MP4
+                          </a>
+                          {canPublish ? (
+                            <button
+                              type="button"
+                              onClick={() => void publishVideo(cardId)}
+                              disabled={isPublishing}
+                              className="inline-flex items-center rounded-lg border border-slate-300 px-3 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-50"
+                            >
+                              {isPublishing ? "Publishing..." : "Publish"}
+                            </button>
+                          ) : null}
+                        </div>
+                        {publishNote ? (
+                          <p className="pt-2 text-sm text-slate-500">{publishNote}</p>
+                        ) : null}
                       </div>
                     ) : (
                       <p className="pt-2 text-sm text-slate-500">MP4 is being rendered...</p>
