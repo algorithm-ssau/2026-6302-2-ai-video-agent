@@ -11,7 +11,7 @@ export type SeriesPayload = {
   selectedCaptionStyle: string | null
   seriesName: string
   duration: string
-  selectedPlatforms: string[]
+  selectedPlatforms: Array<"vk">
   publishTime: string
 }
 
@@ -29,6 +29,8 @@ export function isValidSeriesPayload(payload: unknown): payload is SeriesPayload
     (data.voice === null || typeof data.voice === "string") &&
     Array.isArray(data.selectedBG) &&
     Array.isArray(data.selectedPlatforms) &&
+    data.selectedPlatforms.length > 0 &&
+    data.selectedPlatforms.every((platform) => platform === "vk") &&
     (data.selectedStyle === null || typeof data.selectedStyle === "string") &&
     (data.selectedCaptionStyle === null ||
       typeof data.selectedCaptionStyle === "string") &&

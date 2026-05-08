@@ -5,7 +5,7 @@ import { inngest } from "./inngest-client";
 import { generateVideoScriptStep } from "./video-steps/generate-script";
 import { generateVoiceForScript } from "./tts";
 import { supabaseAdmin } from "./supabase/admin";
-import { sendVideoReadyEmail } from "./plunk";
+import { publishVkClip } from "./social/vk";
 import type { CaptionWord } from "@/remotion/types";
 
 const helloWorldEvent = eventType("test/hello.world");
@@ -52,7 +52,7 @@ async function dispatchSeriesPlatforms({
 
   const { data: videoRow, error: videoError } = await supabase
     .from("videos")
-    .select("id, title, images, duration_seconds, scene_count, created_at")
+    .select("id, title")
     .eq("id", videoId)
     .single();
 
@@ -60,67 +60,88 @@ async function dispatchSeriesPlatforms({
     throw new Error(`Could not load video for platform dispatch: ${videoError?.message || "not found"}`);
   }
 
-  const { data: userRow, error: userError } = await supabase
-    .from("users")
-    .select("email, name")
-    .eq("clerk_id", userId)
+  const results: Record<string, unknown> = {};
+  if (!normalizedPlatforms.includes("vk")) {
+    return { success: true, skipped: true, reason: "vk-not-selected" };
+  }
+
+  const { data: vkConnection, error: vkError } = await supabase
+    .from("social_connections")
+    .select("access_token, token_expires_at, status")
+    .eq("user_id", userId)
+    .eq("platform", "vk")
+    .maybeSingle();
+
+  if (vkError) {
+    throw new Error(`Failed to load VK connection: ${vkError.message}`);
+  }
+
+  if (!vkConnection?.access_token || vkConnection.status !== "connected") {
+    throw new Error("VK account is not connected");
+  }
+
+  if (vkConnection.token_expires_at) {
+    const expiresAt = new Date(vkConnection.token_expires_at).getTime();
+    if (Number.isFinite(expiresAt) && expiresAt <= Date.now()) {
+      throw new Error("VK access token expired; reconnect your VK account");
+    }
+  }
+
+  const { data: seriesRow, error: seriesError } = await supabase
+    .from("video_agent_series")
+    .select("series_name, niche_type, selected_niche, custom_niche")
+    .eq("id", seriesId)
     .single();
 
-  if (userError) {
-    throw new Error(`Could not load user for platform dispatch: ${userError.message}`);
+  if (seriesError) {
+    throw new Error(`Could not load series for VK publish: ${seriesError.message}`);
   }
 
-  const results: Record<string, unknown> = {};
-  const images = Array.isArray(videoRow.images) ? (videoRow.images as unknown[]) : [];
-  const thumbnailUrl = images.find((image): image is string => typeof image === "string" && image.length > 0) || null;
+  const seriesName = typeof seriesRow?.series_name === "string" ? seriesRow.series_name : "";
+  const niche =
+    seriesRow?.niche_type === "custom"
+      ? typeof seriesRow.custom_niche === "string"
+        ? seriesRow.custom_niche
+        : ""
+      : typeof seriesRow?.selected_niche === "string"
+        ? seriesRow.selected_niche
+        : "";
 
-  if (normalizedPlatforms.includes("email")) {
-    if (!userRow?.email) {
-      throw new Error("Selected platform includes email, but user email is missing");
-    }
+  const titleBase = typeof videoRow.title === "string" && videoRow.title.trim()
+    ? videoRow.title
+    : seriesName || "AI video";
+  const title = titleBase.trim();
 
-    const emailResult = await sendVideoReadyEmail({
-      to: userRow.email,
-      userName: typeof userRow.name === "string" ? userRow.name : null,
-      title: typeof videoRow.title === "string" ? videoRow.title : null,
-      videoUrl,
-      seriesId,
-      videoId,
-      thumbnailUrl,
-      durationSeconds:
-        typeof videoRow.duration_seconds === "number" ? videoRow.duration_seconds : null,
-      sceneCount: typeof videoRow.scene_count === "number" ? videoRow.scene_count : null,
-      generatedAt: typeof videoRow.created_at === "string" ? videoRow.created_at : null,
-    });
+  const hashtags = buildHashtags(["vkclips", seriesName, niche]);
+  const descriptionParts = [] as string[];
+  if (seriesName) descriptionParts.push(seriesName);
+  if (niche) descriptionParts.push(niche);
+  if (hashtags) descriptionParts.push(hashtags);
 
-    results.email = { success: true, result: emailResult };
-  }
+  const description = descriptionParts.join("\n");
 
-  if (normalizedPlatforms.includes("youtube")) {
-    results.youtube = {
-      success: true,
-      placeholder: true,
-      message: "YouTube publish placeholder (integration pending)",
-    };
-  }
+  const vkResult = await publishVkClip({
+    accessToken: vkConnection.access_token,
+    title,
+    description,
+    videoUrl,
+  });
 
-  if (normalizedPlatforms.includes("instagram") || normalizedPlatforms.includes("vk")) {
-    results.instagram = {
-      success: true,
-      placeholder: true,
-      message: "Instagram publish placeholder (integration pending)",
-    };
-  }
-
-  if (normalizedPlatforms.includes("tiktok")) {
-    results.tiktok = {
-      success: true,
-      placeholder: true,
-      message: "TikTok publish placeholder (integration pending)",
-    };
-  }
-
+  results.vk = { success: true, result: vkResult };
   return results;
+}
+
+function buildHashtags(values: Array<string | null | undefined>) {
+  const tags = new Set<string>();
+  for (const value of values) {
+    if (!value) continue;
+    const cleaned = value.trim();
+    if (!cleaned) continue;
+    const normalized = cleaned.replace(/[^\p{L}\p{N}]+/gu, "");
+    if (!normalized) continue;
+    tags.add(`#${normalized}`);
+  }
+  return Array.from(tags).join(" ");
 }
 
 function normalizeCaptionWords(input: unknown): CaptionWord[] {
@@ -162,7 +183,6 @@ export const generateVideo = inngest.createFunction(
   },
   async ({ event, step }) => {
     const { seriesId, userId } = event.data;
-    const skipReadyEmail = event.data && typeof event.data === "object" && event.data.skipReadyEmail === true;
     const runPublishAfterGeneration =
       event.data && typeof event.data === "object" && event.data.runPublishAfterGeneration === true;
     const selectedPlatformsFromEvent =
@@ -373,70 +393,6 @@ export const generateVideo = inngest.createFunction(
       }
     });
 
-    await step.run("send-video-ready-email", async () => {
-      if (skipReadyEmail) {
-        return { success: true, skipped: true };
-      }
-
-      try {
-        const supabase = supabaseAdmin();
-        const render = renderResult as { videoId?: string | number; videoUrl?: string } | undefined;
-        const videoId = render?.videoId ? String(render.videoId) : null;
-        const videoUrl = typeof render?.videoUrl === "string" ? render.videoUrl : null;
-
-        if (!videoId || !videoUrl) {
-          throw new Error("Missing rendered video details for notification email");
-        }
-
-      const { data: videoRow, error: videoError } = await supabase
-        .from("videos")
-        .select("id, series_id, user_id, title, video_url, images, duration_seconds, scene_count, created_at")
-        .eq("id", videoId)
-        .single();
-
-      if (videoError || !videoRow) {
-        throw new Error(`Could not load rendered video for email: ${videoError?.message || "not found"}`);
-      }
-
-      const ownerId = typeof videoRow.user_id === "string" ? videoRow.user_id : null;
-      if (!ownerId) {
-        throw new Error("Rendered video has no user_id for notification email");
-      }
-
-      const { data: userRow, error: userError } = await supabase
-        .from("users")
-        .select("email, name")
-        .eq("clerk_id", ownerId)
-        .single();
-
-      if (userError || !userRow?.email) {
-        throw new Error(`Could not load recipient for video email: ${userError?.message || "missing email"}`);
-      }
-
-      const images = Array.isArray(videoRow.images) ? (videoRow.images as unknown[]) : [];
-      const thumbnailUrl = images.find((image): image is string => typeof image === "string" && image.length > 0);
-
-      const result = await sendVideoReadyEmail({
-        to: userRow.email,
-        userName: typeof userRow.name === "string" ? userRow.name : null,
-        title: typeof videoRow.title === "string" ? videoRow.title : null,
-        videoUrl,
-        seriesId: videoRow.series_id ?? seriesId,
-        videoId: videoRow.id ?? videoId,
-        thumbnailUrl,
-        durationSeconds:
-          typeof videoRow.duration_seconds === "number" ? videoRow.duration_seconds : null,
-        sceneCount: typeof videoRow.scene_count === "number" ? videoRow.scene_count : null,
-        generatedAt: typeof videoRow.created_at === "string" ? videoRow.created_at : null,
-      });
-
-        return { success: true, result };
-      } catch (err) {
-        console.error("Send video ready email step failed:", { err, seriesId });
-        throw err;
-      }
-    });
-
     await step.run("update-series-status", async () => {
       console.log("Updating series status (placeholder)");
       return { success: true };
@@ -600,7 +556,6 @@ export const runSeriesScheduler = inngest.createFunction(
           data: {
             seriesId,
             userId,
-            skipReadyEmail: true,
           },
         });
         nextWorkflow.lastGenerationDate = todayKey;

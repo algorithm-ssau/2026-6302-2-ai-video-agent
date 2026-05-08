@@ -4,7 +4,7 @@ import { useEffect, useMemo, useState } from "react"
 import { useRouter, useSearchParams } from "next/navigation"
 import { useClerk } from "@clerk/nextjs"
 
-type Platform = "youtube" | "instagram" | "tiktok"
+type Platform = "vk"
 
 type SocialConnection = {
   platform: string
@@ -16,19 +16,9 @@ type SocialConnection = {
 
 const SOCIALS: Array<{ id: Platform; title: string; description: string }> = [
   {
-    id: "youtube",
-    title: "YouTube Channel",
-    description: "Required to upload and manage YouTube videos in future publishing.",
-  },
-  {
-    id: "instagram",
-    title: "Instagram Account",
-    description: "Required to publish videos and fetch profile metadata.",
-  },
-  {
-    id: "tiktok",
-    title: "TikTok Account",
-    description: "Required to publish TikTok videos from scheduled workflows.",
+    id: "vk",
+    title: "VK Clips",
+    description: "Connect VK to publish clips from scheduled workflows.",
   },
 ]
 
@@ -138,7 +128,7 @@ export default function SettingsPage() {
       <section className="rounded-3xl border border-slate-200 bg-white p-8 shadow-sm">
         <h2 className="text-2xl font-semibold text-slate-900">Social Accounts</h2>
         <p className="mt-1 text-sm text-slate-500">
-          OAuth tokens are stored to support future automated publishing.
+          VK access tokens are stored to publish clips from your schedule.
         </p>
 
         <div className="mt-6 grid gap-4 md:grid-cols-3">

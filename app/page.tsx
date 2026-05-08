@@ -22,29 +22,10 @@ const PlaySquareIcon = (props: React.SVGProps<SVGSVGElement>) => (
   </svg>
 );
 
-const VideoIcon = (props: React.SVGProps<SVGSVGElement>) => (
-  <svg {...props} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-    <path d="m16 13 5.223 3.482a.5.5 0 0 0 .777-.416V7.87a.5.5 0 0 0-.752-.432L16 10.5" /><rect x="2" y="6" width="14" height="12" rx="2" ry="2" />
-  </svg>
-);
-
-const YoutubeIcon = (props: React.SVGProps<SVGSVGElement>) => (
-  <svg {...props} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-    <path d="M2.5 17a24.12 24.12 0 0 1 0-10 2 2 0 0 1 1.4-1.4 49.56 49.56 0 0 1 16.2 0A2 2 0 0 1 21.5 7a24.12 24.12 0 0 1 0 10 2 2 0 0 1-1.4 1.4 49.55 49.55 0 0 1-16.2 0A2 2 0 0 1 2.5 17" />
-    <path d="m10 15 5-3-5-3z" />
-  </svg>
-);
-
 const ShareIcon = (props: React.SVGProps<SVGSVGElement>) => (
   <svg {...props} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
     <circle cx="18" cy="5" r="3" /><circle cx="6" cy="12" r="3" /><circle cx="18" cy="19" r="3" />
     <line x1="8.59" x2="15.42" y1="13.51" y2="17.49" /><line x1="15.41" x2="8.59" y1="6.51" y2="10.49" />
-  </svg>
-);
-
-const MailIcon = (props: React.SVGProps<SVGSVGElement>) => (
-  <svg {...props} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-    <rect width="20" height="16" x="2" y="4" rx="2" /><path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7" />
   </svg>
 );
 
@@ -111,7 +92,7 @@ export default function Home() {
             </h1>
 
             <p className="text-lg md:text-xl text-slate-400 max-w-2xl mx-auto mb-10 leading-relaxed">
-              Превращайте обычный текст в захватывающие короткие видеоролики за считанные секунды. Автоматическая выкладка в TikTok, YouTube Shorts, VK Клипы и рассылки по Email.
+              Превращайте обычный текст в захватывающие короткие видеоролики за считанные секунды. Автоматическая выкладка в VK Клипы.
             </p>
 
             <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
@@ -144,55 +125,20 @@ export default function Home() {
           <div className="container mx-auto px-4 max-w-6xl">
             <div className="text-center mb-16">
               <h2 className="text-3xl md:text-5xl font-bold tracking-tight mb-4">
-                Автопубликация видео везде
+                Автопубликация в VK Clips
               </h2>
               <p className="text-slate-400 text-lg max-w-2xl mx-auto">
-                Создайте видео один раз, и наш умный ИИ автоматически оптимизирует и выложит его на все популярные платформы.
+                Создайте видео один раз, и система автоматически подготовит и опубликует клип в VK.
               </p>
             </div>
-
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-              {/* TikTok */}
-              <div className="bg-slate-900 p-8 rounded-3xl border border-white/5 hover:border-pink-500/30 transition-colors group">
-                <div className="w-14 h-14 bg-pink-500/10 rounded-2xl flex items-center justify-center mb-6 text-pink-400 group-hover:scale-110 transition-transform">
-                  <VideoIcon className="w-7 h-7" />
-                </div>
-                <h3 className="text-xl font-bold mb-2">TikTok</h3>
-                <p className="text-slate-400 text-sm leading-relaxed">
-                  Идеальные вертикальные 9:16 видео с автогенерацией трендовых хэштегов.
-                </p>
-              </div>
-
-              {/* YouTube Shorts */}
-              <div className="bg-slate-900 p-8 rounded-3xl border border-white/5 hover:border-red-500/30 transition-colors group">
-                <div className="w-14 h-14 bg-red-500/10 rounded-2xl flex items-center justify-center mb-6 text-red-500 group-hover:scale-110 transition-transform">
-                  <YoutubeIcon className="w-7 h-7" />
-                </div>
-                <h3 className="text-xl font-bold mb-2">YouTube Shorts</h3>
-                <p className="text-slate-400 text-sm leading-relaxed">
-                  Постоянный органический трафик на ваш канал через короткие ролики.
-                </p>
-              </div>
-
-              {/* VK Video */}
+            <div className="grid grid-cols-1 gap-6">
               <div className="bg-slate-900 p-8 rounded-3xl border border-white/5 hover:border-blue-500/30 transition-colors group">
                 <div className="w-14 h-14 bg-blue-500/10 rounded-2xl flex items-center justify-center mb-6 text-blue-500 group-hover:scale-110 transition-transform">
                   <ShareIcon className="w-7 h-7" />
                 </div>
                 <h3 className="text-xl font-bold mb-2">VK Клипы</h3>
                 <p className="text-slate-400 text-sm leading-relaxed">
-                  Автоматическая загрузка видео в крупнейшую социальную сеть рунета (ВКонтакте).
-                </p>
-              </div>
-
-              {/* Email */}
-              <div className="bg-slate-900 p-8 rounded-3xl border border-white/5 hover:border-emerald-500/30 transition-colors group">
-                <div className="w-14 h-14 bg-emerald-500/10 rounded-2xl flex items-center justify-center mb-6 text-emerald-500 group-hover:scale-110 transition-transform">
-                  <MailIcon className="w-7 h-7" />
-                </div>
-                <h3 className="text-xl font-bold mb-2">Email Рассылки</h3>
-                <p className="text-slate-400 text-sm leading-relaxed">
-                  Мгновенная отправка сгенерированных видео-сводок и новостей вашим клиентам.
+                  Автоматическая загрузка коротких видео в VK Clips.
                 </p>
               </div>
             </div>
@@ -249,8 +195,6 @@ export default function Home() {
             <p>© 2026 ShortsGen Inc. Все права защищены.</p>
             <div className="flex gap-4 mt-4 md:mt-0">
               <Link href="#" className="hover:text-white transition-colors">VK</Link>
-              <Link href="#" className="hover:text-white transition-colors">Telegram</Link>
-              <Link href="#" className="hover:text-white transition-colors">YouTube</Link>
             </div>
           </div>
         </div>

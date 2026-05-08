@@ -57,58 +57,6 @@ function NicheIcon({ id }: { id: string }) {
   }
 }
 
-function PlatformButton({ id, label, active, onToggle }: { id: string; label: string; active: boolean; onToggle: () => void }) {
-  const common = 'flex items-center gap-2 px-3 py-2 rounded-md border';
-  const activeClass = active ? 'bg-purple-600 text-white border-purple-600' : 'bg-white border-gray-100 hover:bg-gray-50'
-
-  return (
-    <button
-      type="button"
-      aria-pressed={active}
-      onClick={onToggle}
-      className={`${common} ${activeClass}`}
-    >
-      <span className="w-5 h-5 flex items-center justify-center text-lg">
-        <PlatformIcon name={id} />
-      </span>
-      <span className="text-sm font-medium">{label}</span>
-    </button>
-  )
-}
-
-function PlatformIcon({ name }: { name: string }) {
-  switch (name) {
-    case 'tiktok':
-      return (
-        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-          <path d="M16 3v10.5a4.5 4.5 0 11-4.5-4.5V9a6 6 0 006 6 6 6 0 000-12h-.5z" fill="currentColor" />
-        </svg>
-      )
-    case 'youtube':
-      return (
-        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-          <path d="M10 15l5-3-5-3v6z" fill="currentColor" />
-          <rect x="3" y="6" width="18" height="12" rx="3" stroke="currentColor" strokeWidth="1.2" fill="none" />
-        </svg>
-      )
-    case 'vk':
-      return (
-        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-          <path d="M3 4h18v16H3z" fill="currentColor" opacity="0.05" />
-          <path d="M8 9c2 0 3 2 5 2s3-2 5-2v1c-2 0-3 2-5 2s-3-2-5-2v-1z" fill="currentColor" />
-        </svg>
-      )
-    case 'email':
-      return (
-        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-          <path d="M3 6.5v11a1 1 0 001 1h16a1 1 0 001-1v-11" stroke="currentColor" strokeWidth="1.2" fill="none" />
-          <path d="M3.5 6.5l8.5 6 8.5-6" stroke="currentColor" strokeWidth="1.2" fill="none" />
-        </svg>
-      )
-    default:
-      return null
-  }
-}
 
 function Stepper({ step }: { step: number }) {
   const total = 6
@@ -217,13 +165,7 @@ export default function CreateSeriesPage() {
   const [selectedCaptionStyle, setSelectedCaptionStyle] = useState<string | null>(null)
   const [seriesName, setSeriesName] = useState<string>("")
   const [duration, setDuration] = useState<string>("30-50")
-  const PLATFORMS = [
-    { id: 'tiktok', label: 'TikTok' },
-    { id: 'youtube', label: 'YouTube' },
-    { id: 'vk', label: 'VK' },
-    { id: 'email', label: 'Email' },
-  ]
-  const [selectedPlatforms, setSelectedPlatforms] = useState<string[]>([])
+  const [selectedPlatforms, setSelectedPlatforms] = useState<string[]>(["vk"])
   const [publishTime, setPublishTime] = useState<string>("")
   const [scheduleError, setScheduleError] = useState<string | null>(null)
   const [isScheduling, setIsScheduling] = useState(false)
@@ -287,9 +229,7 @@ export default function CreateSeriesPage() {
         )
         setSeriesName(payload.seriesName ?? series.series_name ?? "")
         setDuration(payload.duration ?? series.duration ?? "30-50")
-        setSelectedPlatforms(
-          payload.selectedPlatforms ?? series.selected_platforms ?? [],
-        )
+        setSelectedPlatforms(["vk"])
         setPublishTime(
           payload.publishTime
             ? toDatetimeLocalValue(payload.publishTime)
@@ -398,7 +338,6 @@ export default function CreateSeriesPage() {
     isLoadingExistingSeries ||
     isScheduling ||
     seriesName.trim() === "" ||
-    selectedPlatforms.length === 0 ||
     publishTime.trim() === ""
 
   return (
@@ -525,19 +464,11 @@ export default function CreateSeriesPage() {
               </div>
 
               <div>
-                <label className="block text-sm font-medium mb-2">Platforms to publish</label>
-                <div className="grid grid-cols-2 gap-2">
-                  {PLATFORMS.map((p) => (
-                    <PlatformButton
-                      key={p.id}
-                      id={p.id}
-                      label={p.label}
-                      active={selectedPlatforms.includes(p.id)}
-                      onToggle={() => setSelectedPlatforms(prev => prev.includes(p.id) ? prev.filter(x => x !== p.id) : [...prev, p.id])}
-                    />
-                  ))}
+                <label className="block text-sm font-medium mb-2">Publishing</label>
+                <div className="rounded border border-gray-200 bg-gray-50 px-3 py-2 text-sm text-slate-700">
+                  VK Clips
                 </div>
-                <p className="text-xs text-slate-500 mt-2">Note: platforms listed in the project docs: see [README.md](README.md#L36) and UI at [app/page.tsx](app/page.tsx#L114).</p>
+                <p className="text-xs text-slate-500 mt-2">Connect VK in Settings to publish clips.</p>
               </div>
 
               <div>
