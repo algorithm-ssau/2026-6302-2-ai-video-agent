@@ -43,7 +43,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
   xdg-utils \
   && rm -rf /var/lib/apt/lists/*
 
-RUN npm install && ./node_modules/.bin/remotion browser ensure
+RUN npm install && npm exec -- remotion browser ensure
 
 COPY . .
 

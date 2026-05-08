@@ -11,6 +11,7 @@ import type { VideoListRow } from "@/lib/videos-list"
 const createdAtFormatter = new Intl.DateTimeFormat("en-US", {
   dateStyle: "medium",
   timeStyle: "short",
+  timeZone: "UTC",
 })
 
 const POLL_MS = 3000
