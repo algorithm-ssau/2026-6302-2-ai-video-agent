@@ -14,8 +14,6 @@ const ENV_CHECKS: EnvCheck[] = [
   { name: "DEEPGRAM_API_KEY", service: "captions/tts" },
   { name: "FONADALABS_API_KEY", service: "tts" },
   { name: "HUGGING_FACE_API_KEY", service: "image-generation" },
-  { name: "PLUNK_SECRET_KEY", service: "plunk" },
-  { name: "PLUNK_FROM_EMAIL", service: "plunk" },
   { name: "NEXT_PUBLIC_APP_URL", service: "app-links" },
 ];
 

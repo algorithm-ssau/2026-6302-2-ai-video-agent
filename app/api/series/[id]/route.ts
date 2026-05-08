@@ -124,26 +124,6 @@ export async function PATCH(request: Request, context: RouteContext) {
 
       try {
         const isExecuteWorkflow = body.action === "execute-workflow"
-        let selectedPlatforms: string[] = []
-
-        if (isExecuteWorkflow) {
-          const { data: seriesRow, error: seriesLoadError } = await supabase
-            .from("video_agent_series")
-            .select("selected_platforms")
-            .eq("id", id)
-            .eq("user_id", userId)
-            .single()
-
-          if (seriesLoadError) {
-            throw new Error(seriesLoadError.message)
-          }
-
-          selectedPlatforms = Array.isArray(seriesRow?.selected_platforms)
-            ? seriesRow.selected_platforms.filter(
-                (platform): platform is string => typeof platform === "string",
-              )
-            : []
-        }
 
         await inngest.send({
           name: "video/generate",
@@ -153,7 +133,7 @@ export async function PATCH(request: Request, context: RouteContext) {
             ...(isExecuteWorkflow
               ? {
                   runPublishAfterGeneration: true,
-                  selectedPlatforms,
+                  selectedPlatforms: ["vk"],
                 }
               : {}),
           },
