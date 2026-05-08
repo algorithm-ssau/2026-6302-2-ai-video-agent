@@ -7,6 +7,9 @@ services:
     command: npm run dev -- --hostname 0.0.0.0 --port 3000
     env_file:
       - .env.local
+    environment:
+      - INNGEST_DEV=http://inngest:8288
+      - INNGEST_BASE_URL=http://inngest:8288
     ports:
       - "3000:3000"
     volumes:
@@ -23,6 +26,8 @@ services:
       - app
     env_file:
       - .env.local
+    environment:
+      - INNGEST_DEV=1
     ports:
       - "8288:8288"
     volumes:

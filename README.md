@@ -82,6 +82,11 @@ docker compose up --build
 - App: http://localhost:3000
 - Inngest: http://localhost:8288
 
+Если в логах `app` появляется `Failed to register` / `ECONNREFUSED` для Inngest:
+- убедитесь, что сервис `inngest` запущен в `docker compose`;
+- перезапустите стек командой `docker compose down && docker compose up --build`;
+- проверьте, что у `app` заданы `INNGEST_DEV` и `INNGEST_BASE_URL` на `http://inngest:8288`.
+
 ### Вариант 2: Локально без Docker
 
 1) Установите зависимости и запустите dev-сервисы:
