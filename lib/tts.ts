@@ -1,13 +1,7 @@
 import { supabaseAdmin } from "./supabase/admin";
 import { getDeepgramKey, getFonadaKey } from "./env";
-import { DeepgramVoices, FonadalabVoices, Language } from "./voiceData";
+import { Language } from "./voiceData";
 import { VideoScript } from "./video-script-generator";
-
-type Endpoint = {
-  url: string;
-  body?: string;
-  bodyVariants?: string[];
-};
 
 async function uploadAudio(seriesId: string, fileName: string, buffer: Buffer, contentType = "audio/mpeg") {
   const supabase = supabaseAdmin();
@@ -112,7 +106,7 @@ export async function generateVoiceForScript(seriesId: string, userId: string, s
   }
 
   // Save single uploaded audio reference into step_payload.voiceover_url
-  const { data: existing, error: fetchError } = await supabase
+  const { data: existing } = await supabase
     .from("video_agent_series")
     .select("step_payload")
     .eq("id", seriesId)

@@ -1,6 +1,6 @@
 "use client"
 
-import { useEffect, useMemo, useState } from "react"
+import { Suspense, useEffect, useMemo, useState } from "react"
 import { useRouter, useSearchParams } from "next/navigation"
 import { useClerk } from "@clerk/nextjs"
 
@@ -30,7 +30,7 @@ function getErrorMessage(error: unknown, fallback = "Unknown error"): string {
   return error instanceof Error ? error.message : fallback
 }
 
-export default function SettingsPage() {
+function SettingsPageContent() {
   const router = useRouter()
   const searchParams = useSearchParams()
   const { signOut } = useClerk()
@@ -74,7 +74,7 @@ export default function SettingsPage() {
 
   function onConnect(platform: Platform) {
     setActivePlatform(platform)
-    window.location.href = `/api/social/connect/${platform}`
+    router.push(`/api/social/connect/${platform}`)
   }
 
   async function onDeleteAccount() {
@@ -183,5 +183,13 @@ export default function SettingsPage() {
         </button>
       </section>
     </div>
+  )
+}
+
+export default function SettingsPage() {
+  return (
+    <Suspense fallback={<div className="mx-auto max-w-5xl space-y-8" />}>
+      <SettingsPageContent />
+    </Suspense>
   )
 }

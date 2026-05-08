@@ -1,6 +1,6 @@
 "use client"
 
-import React, { useEffect, useRef, useState } from "react"
+import React, { Suspense, useEffect, useRef, useState } from "react"
 import Image from "next/image"
 import { useRouter, useSearchParams } from "next/navigation"
 import CaptionStyle from "../../../components/ui/caption-style"
@@ -144,7 +144,7 @@ function NicheSelection({
   )
 }
 
-export default function CreateSeriesPage() {
+function CreateSeriesPageContent() {
   const router = useRouter()
   const searchParams = useSearchParams()
   const seriesId = searchParams.get("seriesId")
@@ -555,5 +555,13 @@ export default function CreateSeriesPage() {
         <WizardFooter step={step} total={total} onBack={handleBack} onContinue={handleContinue} continueDisabled={continueDisabled} />
       </div>
     </div>
+  )
+}
+
+export default function CreateSeriesPage() {
+  return (
+    <Suspense fallback={<div className="min-h-screen bg-gray-50 p-6" />}>
+      <CreateSeriesPageContent />
+    </Suspense>
   )
 }

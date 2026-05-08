@@ -71,7 +71,7 @@ export function VideosClient({
   initialGenerating,
 }: VideosClientProps) {
   const router = useRouter()
-  const [videos, setVideos] = useState<VideoListRow[]>(initialVideos)
+  const [videos, setVideos] = useState<VideoListRow[]>(() => initialVideos)
   const [listError, setListError] = useState<string | null>(null)
   const [generatingBanner, setGeneratingBanner] = useState(
     initialGenerating && Boolean(initialSeriesId),
@@ -98,15 +98,9 @@ export function VideosClient({
   }, [seriesId])
 
   useEffect(() => {
-    setVideos(initialVideos)
-  }, [initialVideos])
-
-  useEffect(() => {
     if (!initialGenerating || !seriesId) return
 
     startedAtRef.current = Date.now()
-    setGeneratingTimedOut(false)
-    setPollNote(null)
 
     const tick = async () => {
       if (startedAtRef.current != null) {
