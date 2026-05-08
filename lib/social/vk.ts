@@ -1,4 +1,4 @@
-const VK_API_BASE = "https://api.vk.ru/method"
+const VK_API_BASE = "https://api.vk.com/method"
 const VK_API_VERSION = "5.199"
 
 type VkApiError = {

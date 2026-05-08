@@ -85,6 +85,10 @@ export function VideosClient({
 
   const seriesId = initialSeriesId
 
+  useEffect(() => {
+    setVideos(initialVideos)
+  }, [initialVideos])
+
   const refetchVideos = useCallback(async () => {
     setListError(null)
     try {
@@ -103,6 +107,8 @@ export function VideosClient({
   useEffect(() => {
     if (!initialGenerating || !seriesId) return
 
+    setGeneratingTimedOut(false)
+    setPollNote(null)
     startedAtRef.current = Date.now()
 
     const tick = async () => {
