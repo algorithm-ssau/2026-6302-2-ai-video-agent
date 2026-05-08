@@ -2,23 +2,11 @@ import { auth } from "@clerk/nextjs/server"
 import { NextResponse } from "next/server"
 
 import { publishVkVideoToCommunity } from "@/lib/social/vk"
+import { buildHashtags } from "@/lib/social/build-hashtags"
 import { supabaseAdmin } from "@/lib/supabase/admin"
 
 type RouteContext = {
   params: Promise<{ id: string }>
-}
-
-function buildHashtags(values: Array<string | null | undefined>) {
-  const tags = new Set<string>()
-  for (const value of values) {
-    if (!value) continue
-    const cleaned = value.trim()
-    if (!cleaned) continue
-    const normalized = cleaned.replace(/[^\p{L}\p{N}]+/gu, "")
-    if (!normalized) continue
-    tags.add(`#${normalized}`)
-  }
-  return Array.from(tags).join(" ")
 }
 
 export async function POST(_: Request, context: RouteContext) {

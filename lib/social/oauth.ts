@@ -86,8 +86,13 @@ export async function exchangeCodeForToken(
     code,
   })
 
-  const tokenUrl = `${CONFIG[platform].tokenUrl}?${params.toString()}`
-  const res = await fetch(tokenUrl)
+  const res = await fetch(CONFIG[platform].tokenUrl, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/x-www-form-urlencoded",
+    },
+    body: params.toString(),
+  })
   const data = (await res.json()) as Record<string, unknown>
   if (!res.ok || typeof data.access_token !== "string") {
     const vkError = typeof data.error === "string" ? data.error : "unknown_error"
