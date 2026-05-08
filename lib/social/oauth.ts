@@ -109,7 +109,7 @@ export async function loadConnectedProfile(
     v: VK_API_VERSION,
     fields: "screen_name",
   })
-  const res = await fetch(`https://api.vk.ru/method/users.get?${params.toString()}`)
+  const res = await fetch(`https://api.vk.com/method/users.get?${params.toString()}`)
   const data = (await res.json()) as {
     response?: Array<{ id?: number; first_name?: string; last_name?: string; screen_name?: string }>
     error?: { error_code?: number; error_msg?: string }
