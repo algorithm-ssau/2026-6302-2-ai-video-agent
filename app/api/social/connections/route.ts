@@ -24,7 +24,7 @@ export async function GET() {
     const supabase = supabaseAdmin()
     const { data, error } = await supabase
       .from("vk_communities")
-      .select("id,community_id,community_name,is_active,updated_at,created_at,access_token")
+      .select("id,community_id,community_name,is_active,updated_at,created_at,access_token,user_access_token")
       .eq("user_id", userId)
       .order("updated_at", { ascending: false })
 
@@ -42,6 +42,10 @@ export async function GET() {
       updatedAt: item.updated_at,
       createdAt: item.created_at,
       tokenMasked: typeof item.access_token === "string" ? maskToken(item.access_token) : null,
+      userTokenMasked:
+        typeof item.user_access_token === "string" && item.user_access_token
+          ? maskToken(item.user_access_token)
+          : null,
     }))
 
     return NextResponse.json({ connections: communities })
@@ -66,6 +70,8 @@ export async function POST(request: Request) {
     const raw = body as Record<string, unknown>
     const communityId = sanitizeCommunityId(raw.communityId)
     const accessToken = typeof raw.accessToken === "string" ? raw.accessToken.trim() : ""
+    const userAccessToken =
+      typeof raw.userAccessToken === "string" ? raw.userAccessToken.trim() : ""
     const communityName =
       typeof raw.communityName === "string" && raw.communityName.trim()
         ? raw.communityName.trim()
@@ -77,6 +83,9 @@ export async function POST(request: Request) {
     if (!accessToken) {
       return NextResponse.json({ error: "accessToken is required" }, { status: 400 })
     }
+    if (!userAccessToken) {
+      return NextResponse.json({ error: "userAccessToken is required for video publish" }, { status: 400 })
+    }
 
     const supabase = supabaseAdmin()
     const { data, error } = await supabase
@@ -87,12 +96,13 @@ export async function POST(request: Request) {
           community_id: communityId,
           community_name: communityName,
           access_token: accessToken,
+          user_access_token: userAccessToken,
           is_active: true,
           updated_at: new Date().toISOString(),
         },
         { onConflict: "user_id,community_id" },
       )
-      .select("id,community_id,community_name,is_active,updated_at,created_at,access_token")
+      .select("id,community_id,community_name,is_active,updated_at,created_at,access_token,user_access_token")
       .single()
 
     if (error || !data) {
@@ -111,6 +121,8 @@ export async function POST(request: Request) {
         updatedAt: data.updated_at,
         createdAt: data.created_at,
         tokenMasked: maskToken(data.access_token),
+        userTokenMasked:
+          typeof data.user_access_token === "string" ? maskToken(data.user_access_token) : null,
       },
     })
   } catch (error) {

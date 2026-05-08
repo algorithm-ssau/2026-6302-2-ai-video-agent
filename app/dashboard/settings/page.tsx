@@ -13,6 +13,7 @@ type VkCommunityConnection = {
   updatedAt: string
   createdAt: string
   tokenMasked: string | null
+  userTokenMasked: string | null
 }
 
 const CONNECTIONS_API_URL = "/api/social/connections"
@@ -37,9 +38,11 @@ function SettingsPageContent() {
   const [communityId, setCommunityId] = useState("")
   const [communityName, setCommunityName] = useState("")
   const [accessToken, setAccessToken] = useState("")
+  const [userAccessToken, setUserAccessToken] = useState("")
   const [editingId, setEditingId] = useState<number | null>(null)
   const [editingCommunityName, setEditingCommunityName] = useState("")
   const [editingAccessToken, setEditingAccessToken] = useState("")
+  const [editingUserAccessToken, setEditingUserAccessToken] = useState("")
 
   const status = searchParams.get("socialStatus")
   const message = searchParams.get("socialMessage")
@@ -93,6 +96,7 @@ function SettingsPageContent() {
           communityId,
           communityName,
           accessToken,
+          userAccessToken,
         }),
       })
       const body = await res.json().catch(() => ({}))
@@ -102,6 +106,7 @@ function SettingsPageContent() {
       setCommunityId("")
       setCommunityName("")
       setAccessToken("")
+      setUserAccessToken("")
       await reloadConnections()
     } catch (err) {
       setError(getErrorMessage(err, "Failed to add community"))
@@ -114,12 +119,14 @@ function SettingsPageContent() {
     setEditingId(item.id)
     setEditingCommunityName(item.communityName || "")
     setEditingAccessToken("")
+    setEditingUserAccessToken("")
   }
 
   function cancelEdit() {
     setEditingId(null)
     setEditingCommunityName("")
     setEditingAccessToken("")
+    setEditingUserAccessToken("")
   }
 
   async function saveEdit(id: number) {
@@ -132,6 +139,9 @@ function SettingsPageContent() {
       }
       if (editingAccessToken.trim()) {
         payload.accessToken = editingAccessToken
+      }
+      if (editingUserAccessToken.trim()) {
+        payload.userAccessToken = editingUserAccessToken
       }
 
       const res = await fetch(`/api/social/connections/${id}`, {
@@ -253,7 +263,7 @@ function SettingsPageContent() {
 
         <div className="mt-6 rounded-2xl border border-slate-200 bg-slate-50 p-5">
           <h3 className="text-lg font-semibold text-slate-900">Add community</h3>
-          <div className="mt-4 grid gap-3 md:grid-cols-3">
+          <div className="mt-4 grid gap-3 md:grid-cols-2">
             <input
               value={communityId}
               onChange={(event) => setCommunityId(event.target.value)}
@@ -270,7 +280,13 @@ function SettingsPageContent() {
               value={accessToken}
               onChange={(event) => setAccessToken(event.target.value)}
               className="rounded-xl border border-slate-300 px-3 py-2 text-sm"
-              placeholder="Community access token"
+              placeholder="Community token (for wall access)"
+            />
+            <input
+              value={userAccessToken}
+              onChange={(event) => setUserAccessToken(event.target.value)}
+              className="rounded-xl border border-slate-300 px-3 py-2 text-sm md:col-span-2"
+              placeholder="User access token (required for video upload)"
             />
           </div>
           <button
@@ -302,6 +318,9 @@ function SettingsPageContent() {
                     <p className="text-sm text-slate-600">
                       Token: {current.tokenMasked || "hidden"}
                     </p>
+                    <p className="text-sm text-slate-600">
+                      User token: {current.userTokenMasked || "not set"}
+                    </p>
                   </div>
                   <span
                     className={`inline-flex rounded-full px-3 py-1 text-xs font-semibold ${
@@ -324,7 +343,13 @@ function SettingsPageContent() {
                       value={editingAccessToken}
                       onChange={(event) => setEditingAccessToken(event.target.value)}
                       className="rounded-xl border border-slate-300 px-3 py-2 text-sm"
-                      placeholder="New token (optional)"
+                      placeholder="New community token (optional)"
+                    />
+                    <input
+                      value={editingUserAccessToken}
+                      onChange={(event) => setEditingUserAccessToken(event.target.value)}
+                      className="rounded-xl border border-slate-300 px-3 py-2 text-sm md:col-span-2"
+                      placeholder="New user access token (optional)"
                     />
                     <div className="flex gap-2 md:col-span-2">
                       <button

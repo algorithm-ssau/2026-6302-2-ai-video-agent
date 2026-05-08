@@ -1,7 +1,7 @@
 import { auth } from "@clerk/nextjs/server"
 import { NextResponse } from "next/server"
 
-import { publishVkClip } from "@/lib/social/vk"
+import { publishVkVideoToCommunity } from "@/lib/social/vk"
 import { supabaseAdmin } from "@/lib/supabase/admin"
 
 type RouteContext = {
@@ -54,7 +54,7 @@ export async function POST(_: Request, context: RouteContext) {
 
     const { data: vkCommunities, error: communitiesError } = await supabase
       .from("vk_communities")
-      .select("community_id, community_name, access_token")
+      .select("community_id, community_name, access_token, user_access_token")
       .eq("user_id", userId)
       .eq("is_active", true)
 
@@ -105,20 +105,23 @@ export async function POST(_: Request, context: RouteContext) {
           ? community.community_id
           : Number(community.community_id)
       const accessToken = typeof community.access_token === "string" ? community.access_token : ""
+      const userAccessToken =
+        typeof community.user_access_token === "string" ? community.user_access_token : ""
 
-      if (!Number.isFinite(communityId) || communityId <= 0 || !accessToken) {
+      if (!Number.isFinite(communityId) || communityId <= 0 || !accessToken || !userAccessToken) {
         communities.push({
           communityId: community.community_id ?? null,
           communityName: community.community_name ?? null,
           success: false,
-          error: "Invalid community credentials",
+          error: "Missing community token or user access token",
         })
         continue
       }
 
       try {
-        const result = await publishVkClip({
-          accessToken,
+        const result = await publishVkVideoToCommunity({
+          communityToken: accessToken,
+          userAccessToken,
           communityId,
           title,
           description,
@@ -140,13 +143,22 @@ export async function POST(_: Request, context: RouteContext) {
       }
     }
 
-    const failures = communities.filter((item) => item.success !== true).length
+    const failuresList = communities.filter((item) => item.success !== true)
+    const failures = failuresList.length
     const success = communities.some((item) => item.success === true)
+    const firstFailure = failuresList[0]
+    const firstFailureMessage =
+      firstFailure && typeof firstFailure.error === "string"
+        ? firstFailure.error
+        : "Unknown publish error"
 
     return NextResponse.json({
       ok: success,
       total: communities.length,
       failures,
+      message: success
+        ? `Published to ${Math.max(0, communities.length - failures)}/${communities.length} communities`
+        : `Published to 0/${communities.length} communities: ${firstFailureMessage}`,
       communities,
     })
   } catch (error) {

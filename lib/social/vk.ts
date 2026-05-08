@@ -19,12 +19,23 @@ type VkVideoSaveResponse = {
   access_key?: string
 }
 
+type VkWallPostResponse = {
+  post_id: number
+}
+
 export type VkVideoPublishResult = {
   communityId: number
   ownerId: number
   videoId: number
   accessKey: string | null
   uploadResponse: Record<string, unknown>
+}
+
+export type VkWallPostPublishResult = {
+  communityId: number
+  ownerId: number
+  postId: number
+  videoRef: string
 }
 
 function trimText(value: string, maxLen: number): string {
@@ -155,5 +166,75 @@ export async function publishVkClip(options: {
     videoId: upload.video_id,
     accessKey: upload.access_key ?? null,
     uploadResponse,
+  }
+}
+
+export async function publishVkPostWithVideoLink(options: {
+  accessToken: string
+  communityId: number
+  title: string
+  description: string
+  videoUrl: string
+}): Promise<VkWallPostPublishResult> {
+  const safeTitle = trimText(options.title, 128)
+  const safeDescription = trimText(options.description, 4000)
+  const message = [safeTitle, safeDescription, options.videoUrl].filter(Boolean).join("\n\n")
+  const ownerId = -Math.abs(options.communityId)
+
+  const response = await callVkApi<VkWallPostResponse>("wall.post", options.accessToken, {
+    owner_id: ownerId,
+    from_group: 1,
+    message,
+  })
+
+  return {
+    communityId: options.communityId,
+    ownerId,
+    postId: response.post_id,
+    videoRef: options.videoUrl,
+  }
+}
+
+export async function publishVkVideoToCommunity(options: {
+  communityToken: string
+  userAccessToken: string
+  communityId: number
+  title: string
+  description: string
+  videoUrl: string
+}): Promise<VkWallPostPublishResult> {
+  const upload = await createVkVideoUpload({
+    accessToken: options.userAccessToken,
+    communityId: options.communityId,
+    title: options.title,
+    description: options.description,
+  })
+
+  await uploadVkVideoFromUrl({
+    uploadUrl: upload.upload_url,
+    videoUrl: options.videoUrl,
+  })
+
+  const ownerId = -Math.abs(options.communityId)
+  const attachment =
+    upload.access_key != null
+      ? `video${upload.owner_id}_${upload.video_id}_${upload.access_key}`
+      : `video${upload.owner_id}_${upload.video_id}`
+  const message = [trimText(options.title, 128), trimText(options.description, 2000)]
+    .filter(Boolean)
+    .join("\n\n")
+
+  const response = await callVkApi<VkWallPostResponse>("wall.post", options.communityToken, {
+    owner_id: ownerId,
+    from_group: 1,
+    message,
+    attachments: attachment,
+  })
+
+  return {
+    communityId: options.communityId,
+    ownerId,
+    postId: response.post_id,
+    videoRef: attachment,
   }
 }

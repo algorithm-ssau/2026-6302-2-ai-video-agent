@@ -4,7 +4,7 @@ import { inngest } from "./inngest-client";
 import { generateVideoScriptStep } from "./video-steps/generate-script";
 import { generateVoiceForScript } from "./tts";
 import { supabaseAdmin } from "./supabase/admin";
-import { publishVkClip } from "./social/vk";
+import { publishVkVideoToCommunity } from "./social/vk";
 import type { CaptionWord } from "@/remotion/types";
 
 const helloWorldEvent = eventType("test/hello.world");
@@ -43,7 +43,7 @@ async function dispatchSeriesPlatforms({
 
   const { data: vkCommunities, error: vkError } = await supabase
     .from("vk_communities")
-    .select("id, community_id, community_name, access_token, is_active")
+    .select("id, community_id, community_name, access_token, user_access_token, is_active")
     .eq("user_id", userId)
     .eq("is_active", true);
 
@@ -95,20 +95,23 @@ async function dispatchSeriesPlatforms({
         ? community.community_id
         : Number(community.community_id);
     const accessToken = typeof community.access_token === "string" ? community.access_token : "";
+    const userAccessToken =
+      typeof community.user_access_token === "string" ? community.user_access_token : "";
 
-    if (!Number.isFinite(communityId) || communityId <= 0 || !accessToken) {
+    if (!Number.isFinite(communityId) || communityId <= 0 || !accessToken || !userAccessToken) {
       perCommunityResults.push({
         communityId: community.community_id ?? null,
         communityName: community.community_name ?? null,
         success: false,
-        error: "Invalid community credentials",
+        error: "Missing community token or user access token",
       });
       continue;
     }
 
     try {
-      const vkResult = await publishVkClip({
-        accessToken,
+      const vkResult = await publishVkVideoToCommunity({
+        communityToken: accessToken,
+        userAccessToken,
         communityId,
         title,
         description,

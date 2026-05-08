@@ -176,6 +176,8 @@ export function VideosClient({
         error?: string
         total?: number
         failures?: number
+        message?: string
+        communities?: Array<{ success?: boolean; error?: string; communityName?: string | null; communityId?: number | null }>
       }
       if (!res.ok) {
         throw new Error(data.error || "Failed to publish video")
@@ -184,9 +186,23 @@ export function VideosClient({
       const total = typeof data.total === "number" ? data.total : 0
       const failures = typeof data.failures === "number" ? data.failures : 0
       const successCount = Math.max(0, total - failures)
+      const firstFailedCommunity = Array.isArray(data.communities)
+        ? data.communities.find((item) => item?.success !== true)
+        : null
+      const firstFailureMessage =
+        firstFailedCommunity && typeof firstFailedCommunity.error === "string"
+          ? firstFailedCommunity.error
+          : null
+      const failureTarget =
+        firstFailedCommunity && (firstFailedCommunity.communityName || firstFailedCommunity.communityId)
+          ? String(firstFailedCommunity.communityName || firstFailedCommunity.communityId)
+          : null
       setPublishNotes((prev) => ({
         ...prev,
-        [videoId]: `Published to ${successCount}/${total} communities`,
+        [videoId]:
+          failures > 0
+            ? `Published to ${successCount}/${total} communities${firstFailureMessage ? `. First error${failureTarget ? ` (${failureTarget})` : ""}: ${firstFailureMessage}` : ""}`
+            : (data.message || `Published to ${successCount}/${total} communities`),
       }))
     } catch (error) {
       setPublishNotes((prev) => ({

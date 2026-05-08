@@ -56,6 +56,16 @@ export async function PATCH(request: Request, context: RouteContext) {
       nextValues.access_token = raw.accessToken.trim()
     }
 
+    if ("userAccessToken" in raw) {
+      if (typeof raw.userAccessToken !== "string" || !raw.userAccessToken.trim()) {
+        return NextResponse.json(
+          { error: "userAccessToken must be a non-empty string" },
+          { status: 400 },
+        )
+      }
+      nextValues.user_access_token = raw.userAccessToken.trim()
+    }
+
     if ("isActive" in raw) {
       const isActive = parseBoolean(raw.isActive)
       if (isActive === null) {
