@@ -1,6 +1,6 @@
 import { getAppBaseUrl } from "@/lib/env"
 
-export type SocialPlatform = "youtube" | "instagram" | "tiktok"
+export type SocialPlatform = "vk"
 
 type ConnectedProfile = {
   platformUserId: string
@@ -18,39 +18,20 @@ type PlatformConfig = {
 }
 
 const CONFIG: Record<SocialPlatform, PlatformConfig> = {
-  youtube: {
-    label: "YouTube",
-    authUrl: "https://accounts.google.com/o/oauth2/v2/auth",
-    tokenUrl: "https://oauth2.googleapis.com/token",
-    clientIdEnv: "YOUTUBE_CLIENT_ID",
-    clientSecretEnv: "YOUTUBE_CLIENT_SECRET",
-    scopes: [
-      "https://www.googleapis.com/auth/youtube.upload",
-      "https://www.googleapis.com/auth/youtube.readonly",
-    ],
-  },
-  instagram: {
-    label: "Instagram",
-    authUrl: "https://api.instagram.com/oauth/authorize",
-    tokenUrl: "https://api.instagram.com/oauth/access_token",
-    clientIdEnv: "INSTAGRAM_CLIENT_ID",
-    clientSecretEnv: "INSTAGRAM_CLIENT_SECRET",
-    scopes: ["user_profile", "user_media"],
-  },
-  tiktok: {
-    label: "TikTok",
-    authUrl: "https://www.tiktok.com/v2/auth/authorize/",
-    tokenUrl: "https://open.tiktokapis.com/v2/oauth/token/",
-    clientIdEnv: "TIKTOK_CLIENT_ID",
-    clientSecretEnv: "TIKTOK_CLIENT_SECRET",
-    scopes: ["user.info.basic", "video.publish"],
+  vk: {
+    label: "VK",
+    authUrl: "https://oauth.vk.com/authorize",
+    tokenUrl: "https://oauth.vk.com/access_token",
+    clientIdEnv: "VK_CLIENT_ID",
+    clientSecretEnv: "VK_CLIENT_SECRET",
+    scopes: ["video"],
   },
 }
 
+const VK_API_VERSION = "5.199"
+
 export function parsePlatform(value: string): SocialPlatform | null {
-  return value === "youtube" || value === "instagram" || value === "tiktok"
-    ? value
-    : null
+  return value === "vk" ? value : null
 }
 
 function getClientId(platform: SocialPlatform): string {
@@ -80,17 +61,7 @@ export function buildOauthUrl(platform: SocialPlatform, state: string): string {
   params.set("response_type", "code")
   params.set("state", state)
 
-  if (platform === "instagram") {
-    params.set("scope", config.scopes.join(","))
-  } else {
-    params.set("scope", config.scopes.join(" "))
-  }
-
-  if (platform === "youtube") {
-    params.set("access_type", "offline")
-    params.set("prompt", "consent")
-    params.set("include_granted_scopes", "true")
-  }
+  params.set("scope", config.scopes.join(","))
 
   return `${config.authUrl}?${params.toString()}`
 }
@@ -108,78 +79,28 @@ export async function exchangeCodeForToken(
 ): Promise<TokenResult> {
   const redirectUri = getRedirectUri(platform)
 
-  if (platform === "instagram") {
-    const form = new URLSearchParams({
-      client_id: getClientId(platform),
-      client_secret: getClientSecret(platform),
-      grant_type: "authorization_code",
-      redirect_uri: redirectUri,
-      code,
-    })
-
-    const res = await fetch(CONFIG[platform].tokenUrl, {
-      method: "POST",
-      headers: { "Content-Type": "application/x-www-form-urlencoded" },
-      body: form.toString(),
-    })
-    const data = (await res.json()) as Record<string, unknown>
-    if (!res.ok || typeof data.access_token !== "string") {
-      throw new Error("Instagram token exchange failed")
-    }
-    return {
-      accessToken: data.access_token,
-      refreshToken: null,
-      expiresIn: typeof data.expires_in === "number" ? data.expires_in : null,
-      scopeText: null,
-    }
-  }
-
-  if (platform === "youtube") {
-    const form = new URLSearchParams({
-      code,
-      client_id: getClientId(platform),
-      client_secret: getClientSecret(platform),
-      redirect_uri: redirectUri,
-      grant_type: "authorization_code",
-    })
-
-    const res = await fetch(CONFIG[platform].tokenUrl, {
-      method: "POST",
-      headers: { "Content-Type": "application/x-www-form-urlencoded" },
-      body: form.toString(),
-    })
-    const data = (await res.json()) as Record<string, unknown>
-    if (!res.ok || typeof data.access_token !== "string") {
-      throw new Error("YouTube token exchange failed")
-    }
-    return {
-      accessToken: data.access_token,
-      refreshToken: typeof data.refresh_token === "string" ? data.refresh_token : null,
-      expiresIn: typeof data.expires_in === "number" ? data.expires_in : null,
-      scopeText: typeof data.scope === "string" ? data.scope : null,
-    }
-  }
-
-  const form = new URLSearchParams({
-    client_key: getClientId(platform),
+  const params = new URLSearchParams({
+    client_id: getClientId(platform),
     client_secret: getClientSecret(platform),
-    code,
-    grant_type: "authorization_code",
     redirect_uri: redirectUri,
+    code,
   })
 
-  const res = await fetch(CONFIG[platform].tokenUrl, {
-    method: "POST",
-    headers: { "Content-Type": "application/x-www-form-urlencoded" },
-    body: form.toString(),
-  })
+  const tokenUrl = `${CONFIG[platform].tokenUrl}?${params.toString()}`
+  const res = await fetch(tokenUrl)
   const data = (await res.json()) as Record<string, unknown>
   if (!res.ok || typeof data.access_token !== "string") {
-    throw new Error("TikTok token exchange failed")
+    const vkError = typeof data.error === "string" ? data.error : "unknown_error"
+    const vkErrorDescription =
+      typeof data.error_description === "string" ? data.error_description : "No error_description"
+    throw new Error(
+      `VK token exchange failed (${vkError}): ${vkErrorDescription}. redirect_uri=${redirectUri}`,
+    )
   }
+
   return {
     accessToken: data.access_token,
-    refreshToken: typeof data.refresh_token === "string" ? data.refresh_token : null,
+    refreshToken: null,
     expiresIn: typeof data.expires_in === "number" ? data.expires_in : null,
     scopeText: typeof data.scope === "string" ? data.scope : null,
   }
@@ -189,60 +110,29 @@ export async function loadConnectedProfile(
   platform: SocialPlatform,
   accessToken: string,
 ): Promise<ConnectedProfile> {
-  if (platform === "youtube") {
-    const res = await fetch(
-      "https://www.googleapis.com/youtube/v3/channels?part=snippet&mine=true",
-      { headers: { Authorization: `Bearer ${accessToken}` } },
-    )
-    const data = (await res.json()) as {
-      items?: Array<{ id?: string; snippet?: { title?: string; customUrl?: string } }>
-    }
-    const first = data.items?.[0]
-    if (!res.ok || !first?.id) throw new Error("Cannot load YouTube profile")
-    return {
-      platformUserId: first.id,
-      username: first.snippet?.title ?? null,
-      metadata: { customUrl: first.snippet?.customUrl ?? null },
-    }
-  }
-
-  if (platform === "instagram") {
-    const res = await fetch(
-      `https://graph.instagram.com/me?fields=id,username&access_token=${encodeURIComponent(accessToken)}`,
-    )
-    const data = (await res.json()) as { id?: string; username?: string }
-    if (!res.ok || !data.id) throw new Error("Cannot load Instagram profile")
-    return { platformUserId: data.id, username: data.username ?? null, metadata: {} }
-  }
-
-  const res = await fetch("https://open.tiktokapis.com/v2/user/info/", {
-    method: "POST",
-    headers: {
-      Authorization: `Bearer ${accessToken}`,
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify({
-      fields: ["open_id", "display_name", "username", "avatar_url"],
-    }),
+  const params = new URLSearchParams({
+    access_token: accessToken,
+    v: VK_API_VERSION,
+    fields: "screen_name",
   })
+  const res = await fetch(`https://api.vk.com/method/users.get?${params.toString()}`)
   const data = (await res.json()) as {
-    data?: {
-      user?: {
-        open_id?: string
-        display_name?: string
-        username?: string
-        avatar_url?: string
-      }
-    }
+    response?: Array<{ id?: number; first_name?: string; last_name?: string; screen_name?: string }>
+    error?: { error_code?: number; error_msg?: string }
   }
-  const user = data.data?.user
-  if (!res.ok || !user?.open_id) throw new Error("Cannot load TikTok profile")
+  const first = data.response?.[0]
+  if (!res.ok || data.error || !first?.id) {
+    throw new Error("Cannot load VK profile")
+  }
+
+  const nameParts = [first.first_name, first.last_name].filter(Boolean)
   return {
-    platformUserId: user.open_id,
-    username: user.username ?? user.display_name ?? null,
+    platformUserId: String(first.id),
+    username: first.screen_name ?? (nameParts.length ? nameParts.join(" ") : null),
     metadata: {
-      displayName: user.display_name ?? null,
-      avatarUrl: user.avatar_url ?? null,
+      firstName: first.first_name ?? null,
+      lastName: first.last_name ?? null,
+      screenName: first.screen_name ?? null,
     },
   }
 }

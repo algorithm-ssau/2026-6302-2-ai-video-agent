@@ -36,10 +36,13 @@ export async function GET(
   const reqUrl = new URL(request.url)
   const code = reqUrl.searchParams.get("code")
   const state = reqUrl.searchParams.get("state")
-  const callbackError = reqUrl.searchParams.get("error_description")
+  const callbackError = reqUrl.searchParams.get("error")
+  const callbackErrorDescription = reqUrl.searchParams.get("error_description")
+  const callbackErrorReason = reqUrl.searchParams.get("error_reason")
 
-  if (callbackError) {
-    return NextResponse.redirect(makeRedirect(request, "error", callbackError))
+  if (callbackError || callbackErrorDescription || callbackErrorReason) {
+    const parts = [callbackError, callbackErrorReason, callbackErrorDescription].filter(Boolean)
+    return NextResponse.redirect(makeRedirect(request, "error", parts.join(": ")))
   }
 
   if (!code) {

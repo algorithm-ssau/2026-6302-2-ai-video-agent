@@ -20,6 +20,14 @@ export async function DELETE() {
       throw socialConnectionsDelete.error
     }
 
+    const vkCommunitiesDelete = await supabase
+      .from("vk_communities")
+      .delete()
+      .eq("user_id", userId)
+    if (vkCommunitiesDelete.error) {
+      throw vkCommunitiesDelete.error
+    }
+
     const videoAgentSeriesDelete = await supabase
       .from("video_agent_series")
       .delete()

@@ -41,6 +41,7 @@ type SeriesRecord = {
 const createdAtFormatter = new Intl.DateTimeFormat("en-US", {
   dateStyle: "medium",
   timeStyle: "short",
+  timeZone: "UTC",
 })
 
 function getDisplayStatus(series: SeriesRecord) {

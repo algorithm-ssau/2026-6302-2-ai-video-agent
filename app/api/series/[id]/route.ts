@@ -124,26 +124,6 @@ export async function PATCH(request: Request, context: RouteContext) {
 
       try {
         const isExecuteWorkflow = body.action === "execute-workflow"
-        let selectedPlatforms: string[] = []
-
-        if (isExecuteWorkflow) {
-          const { data: seriesRow, error: seriesLoadError } = await supabase
-            .from("video_agent_series")
-            .select("selected_platforms")
-            .eq("id", id)
-            .eq("user_id", userId)
-            .single()
-
-          if (seriesLoadError) {
-            throw new Error(seriesLoadError.message)
-          }
-
-          selectedPlatforms = Array.isArray(seriesRow?.selected_platforms)
-            ? seriesRow.selected_platforms.filter(
-                (platform): platform is string => typeof platform === "string",
-              )
-            : []
-        }
 
         await inngest.send({
           name: "video/generate",
@@ -153,8 +133,7 @@ export async function PATCH(request: Request, context: RouteContext) {
             ...(isExecuteWorkflow
               ? {
                   runPublishAfterGeneration: true,
-                  selectedPlatforms,
-                  skipReadyEmail: true,
+                  selectedPlatforms: ["vk"],
                 }
               : {}),
           },
@@ -174,9 +153,10 @@ export async function PATCH(request: Request, context: RouteContext) {
     return NextResponse.json({ error: "Invalid payload" }, { status: 400 })
   }
 
-  const seriesName = body.seriesName.trim()
-  const customNiche = body.customNiche.trim()
-  const publishTime = body.publishTime.trim()
+  const normalizedPayload = { ...body, selectedPlatforms: ["vk"] as const }
+  const seriesName = normalizedPayload.seriesName.trim()
+  const customNiche = normalizedPayload.customNiche.trim()
+  const publishTime = normalizedPayload.publishTime.trim()
 
   if (!seriesName) {
     return NextResponse.json(
@@ -192,61 +172,63 @@ export async function PATCH(request: Request, context: RouteContext) {
     )
   }
 
-  if (body.nicheType === "available" && !body.selectedNiche) {
+  if (normalizedPayload.nicheType === "available" && !normalizedPayload.selectedNiche) {
     return NextResponse.json(
       { error: "Selected niche is required" },
       { status: 400 },
     )
   }
 
-  if (body.nicheType === "custom" && !customNiche) {
+  if (normalizedPayload.nicheType === "custom" && !customNiche) {
     return NextResponse.json(
       { error: "Custom niche is required" },
       { status: 400 },
     )
   }
 
-  if (!body.language || !body.voice) {
+  if (!normalizedPayload.language || !normalizedPayload.voice) {
     return NextResponse.json(
       { error: "Language and voice are required" },
       { status: 400 },
     )
   }
 
-  if (!body.selectedStyle) {
+  if (!normalizedPayload.selectedStyle) {
     return NextResponse.json(
       { error: "Video style is required" },
       { status: 400 },
     )
   }
 
-  if (!body.selectedCaptionStyle) {
+  if (!normalizedPayload.selectedCaptionStyle) {
     return NextResponse.json(
       { error: "Caption style is required" },
       { status: 400 },
     )
   }
 
-  const selectedBGMeta = Array.isArray(body.selectedBGMeta) ? body.selectedBGMeta : []
+  const selectedBGMeta = Array.isArray(normalizedPayload.selectedBGMeta)
+    ? normalizedPayload.selectedBGMeta
+    : []
 
   const { data, error } = await supabase
     .from("video_agent_series")
     .update({
-      niche_type: body.nicheType,
-      selected_niche: body.selectedNiche,
+      niche_type: normalizedPayload.nicheType,
+      selected_niche: normalizedPayload.selectedNiche,
       custom_niche: customNiche || null,
-      language: body.language,
-      language_model: body.languageModel,
-      voice: body.voice,
-      selected_bg: body.selectedBG,
+      language: normalizedPayload.language,
+      language_model: normalizedPayload.languageModel,
+      voice: normalizedPayload.voice,
+      selected_bg: normalizedPayload.selectedBG,
       selected_bg_meta: selectedBGMeta,
-      selected_style: body.selectedStyle,
-      selected_caption_style: body.selectedCaptionStyle,
+      selected_style: normalizedPayload.selectedStyle,
+      selected_caption_style: normalizedPayload.selectedCaptionStyle,
       series_name: seriesName,
-      duration: body.duration,
-      selected_platforms: body.selectedPlatforms,
+      duration: normalizedPayload.duration,
+      selected_platforms: normalizedPayload.selectedPlatforms,
       publish_time: publishTime,
-      step_payload: body,
+      step_payload: normalizedPayload,
     })
     .eq("id", id)
     .eq("user_id", userId)
