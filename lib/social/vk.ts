@@ -20,6 +20,7 @@ type VkVideoSaveResponse = {
 }
 
 export type VkVideoPublishResult = {
+  communityId: number
   ownerId: number
   videoId: number
   accessKey: string | null
@@ -77,6 +78,7 @@ async function callVkApi<T>(
 
 async function createVkVideoUpload(options: {
   accessToken: string
+  communityId: number
   title: string
   description: string
 }): Promise<VkVideoSaveResponse> {
@@ -84,6 +86,7 @@ async function createVkVideoUpload(options: {
   const safeDescription = trimText(options.description, 5000)
 
   return await callVkApi<VkVideoSaveResponse>("video.save", options.accessToken, {
+    group_id: options.communityId,
     name: safeTitle,
     description: safeDescription,
     wallpost: false,
@@ -129,12 +132,14 @@ async function uploadVkVideoFromUrl(options: {
 
 export async function publishVkClip(options: {
   accessToken: string
+  communityId: number
   title: string
   description: string
   videoUrl: string
 }): Promise<VkVideoPublishResult> {
   const upload = await createVkVideoUpload({
     accessToken: options.accessToken,
+    communityId: options.communityId,
     title: options.title,
     description: options.description,
   })
@@ -145,6 +150,7 @@ export async function publishVkClip(options: {
   })
 
   return {
+    communityId: options.communityId,
     ownerId: upload.owner_id,
     videoId: upload.video_id,
     accessKey: upload.access_key ?? null,

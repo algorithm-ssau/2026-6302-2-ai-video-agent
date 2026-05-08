@@ -41,26 +41,18 @@ async function dispatchSeriesPlatforms({
     return { success: true, skipped: true, reason: "vk-not-selected" };
   }
 
-  const { data: vkConnection, error: vkError } = await supabase
-    .from("social_connections")
-    .select("access_token, token_expires_at, status")
+  const { data: vkCommunities, error: vkError } = await supabase
+    .from("vk_communities")
+    .select("id, community_id, community_name, access_token, is_active")
     .eq("user_id", userId)
-    .eq("platform", "vk")
-    .maybeSingle();
+    .eq("is_active", true);
 
   if (vkError) {
-    throw new Error(`Failed to load VK connection: ${vkError.message}`);
+    throw new Error(`Failed to load VK communities: ${vkError.message}`);
   }
 
-  if (!vkConnection?.access_token || vkConnection.status !== "connected") {
-    throw new Error("VK account is not connected");
-  }
-
-  if (vkConnection.token_expires_at) {
-    const expiresAt = new Date(vkConnection.token_expires_at).getTime();
-    if (Number.isFinite(expiresAt) && expiresAt <= Date.now()) {
-      throw new Error("VK access token expired; reconnect your VK account");
-    }
+  if (!Array.isArray(vkCommunities) || vkCommunities.length === 0) {
+    return { success: true, skipped: true, reason: "no-active-vk-communities" };
   }
 
   const { data: seriesRow, error: seriesError } = await supabase
@@ -96,14 +88,54 @@ async function dispatchSeriesPlatforms({
 
   const description = descriptionParts.join("\n");
 
-  const vkResult = await publishVkClip({
-    accessToken: vkConnection.access_token,
-    title,
-    description,
-    videoUrl,
-  });
+  const perCommunityResults: Array<Record<string, unknown>> = [];
+  for (const community of vkCommunities) {
+    const communityId =
+      typeof community.community_id === "number"
+        ? community.community_id
+        : Number(community.community_id);
+    const accessToken = typeof community.access_token === "string" ? community.access_token : "";
 
-  results.vk = { success: true, result: vkResult };
+    if (!Number.isFinite(communityId) || communityId <= 0 || !accessToken) {
+      perCommunityResults.push({
+        communityId: community.community_id ?? null,
+        communityName: community.community_name ?? null,
+        success: false,
+        error: "Invalid community credentials",
+      });
+      continue;
+    }
+
+    try {
+      const vkResult = await publishVkClip({
+        accessToken,
+        communityId,
+        title,
+        description,
+        videoUrl,
+      });
+      perCommunityResults.push({
+        communityId,
+        communityName: community.community_name ?? null,
+        success: true,
+        result: vkResult,
+      });
+    } catch (error) {
+      perCommunityResults.push({
+        communityId,
+        communityName: community.community_name ?? null,
+        success: false,
+        error: error instanceof Error ? error.message : "Unknown VK publish error",
+      });
+    }
+  }
+
+  results.vk = {
+    success: perCommunityResults.some((item) => item.success === true),
+    total: perCommunityResults.length,
+    failures: perCommunityResults.filter((item) => item.success !== true).length,
+    communities: perCommunityResults,
+  };
   return results;
 }
 

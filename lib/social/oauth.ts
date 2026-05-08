@@ -24,7 +24,7 @@ const CONFIG: Record<SocialPlatform, PlatformConfig> = {
     tokenUrl: "https://oauth.vk.com/access_token",
     clientIdEnv: "VK_CLIENT_ID",
     clientSecretEnv: "VK_CLIENT_SECRET",
-    scopes: ["video", "offline"],
+    scopes: ["video"],
   },
 }
 
@@ -86,10 +86,16 @@ export async function exchangeCodeForToken(
     code,
   })
 
-  const res = await fetch(`${CONFIG[platform].tokenUrl}?${params.toString()}`)
+  const tokenUrl = `${CONFIG[platform].tokenUrl}?${params.toString()}`
+  const res = await fetch(tokenUrl)
   const data = (await res.json()) as Record<string, unknown>
   if (!res.ok || typeof data.access_token !== "string") {
-    throw new Error("VK token exchange failed")
+    const vkError = typeof data.error === "string" ? data.error : "unknown_error"
+    const vkErrorDescription =
+      typeof data.error_description === "string" ? data.error_description : "No error_description"
+    throw new Error(
+      `VK token exchange failed (${vkError}): ${vkErrorDescription}. redirect_uri=${redirectUri}`,
+    )
   }
 
   return {
