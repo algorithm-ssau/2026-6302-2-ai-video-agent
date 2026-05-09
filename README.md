@@ -1,15 +1,14 @@
 # 2026-6302-2-ai-video-agent
-AI-агент для генерации видео и публикации в VK сообщества (VK Video / VK Clips).
-
+AI-агент для генерации видео и публикации в VK сообщества (VK Video/VK Clips).
 ## Текущее состояние
 - Публикация оставлена только в VK.
 - Поддерживается несколько VK сообществ на одного пользователя.
 - Есть ручная публикация готового видео кнопкой `Опубликовать` в `Dashboard -> Videos`.
 - Реализована полноценная загрузка видео в VK (не просто ссылка): `video.save` -> upload -> `wall.post` c `attachments=video...`.
-- Docker-режим для локального запуска приложения и Inngest обновлен.
+- Обновлен Docker-режим для локального запуска приложения и Inngest.
 
 ## Стек
-- Next.js (App Router), React, TypeScript
+- Next.js (App Router), React и TypeScript
 - Supabase (БД + storage)
 - Inngest (фоновые пайплайны)
 - Remotion (рендер MP4)
