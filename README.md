@@ -8,7 +8,7 @@ AI-агент для генерации видео и публикации в VK
 - Обновлен Docker-режим для локального запуска приложения и Inngest.
 
 ## Стек
-- Next.js (App Router), React, TypeScript
+- Next.js (App Router), React и TypeScript
 - Supabase (БД + storage)
 - Inngest (фоновые пайплайны)
 - Remotion (рендер MP4)
