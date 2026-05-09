@@ -69,7 +69,28 @@ export async function renderSeriesMp4(input: RenderInput): Promise<{ outputPath:
     inputProps: props,
     imageFormat: "jpeg",
     audioCodec: "aac",
-    concurrency: 2,
+    concurrency: 1,
+    ffmpegOverride: ({ args }) => {
+      // Remove memory-hungry parameters and force single-threaded encoding
+      const filtered = args.filter(
+        (arg) =>
+          !arg.includes("threads=") &&
+          !arg.includes("lookahead_threads=") &&
+          !arg.includes("ref=") &&
+          !arg.includes("bframes=") &&
+          !arg.includes("crf=")
+      );
+      // Add single-threaded, low-memory encoding options
+      return [
+        ...filtered,
+        "-threads",
+        "1",
+        "-preset",
+        "ultrafast",
+        "-crf",
+        "28",
+      ];
+    },
   });
 
   return { outputPath };
