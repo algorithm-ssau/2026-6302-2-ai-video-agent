@@ -29,8 +29,9 @@ async function getServeUrl() {
 
 export async function renderSeriesMp4(input: RenderInput): Promise<{ outputPath: string }> {
   const fps = 30;
-  const width = 1080;
-  const height = 1920;
+  // Reduced resolution to save memory on low-RAM hosts (1GB servers)
+  const width = 720;
+  const height = 1280;
   const durationInFrames = Math.ceil(getDurationFromCaptionWords(input.captionsWords) * fps);
 
   const props: VideoCompositionProps = {
@@ -69,7 +70,11 @@ export async function renderSeriesMp4(input: RenderInput): Promise<{ outputPath:
     inputProps: props,
     imageFormat: "jpeg",
     audioCodec: "aac",
-    concurrency: 2,
+    x264Preset: "ultrafast",
+    crf: 28,
+    disallowParallelEncoding: true,
+    offthreadVideoThreads: 1,
+    concurrency: 1,
   });
 
   return { outputPath };
