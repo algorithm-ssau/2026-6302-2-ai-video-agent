@@ -1,0 +1,13 @@
+FROM node:20-alpine
+
+WORKDIR /app
+
+COPY package*.json ./
+
+RUN npm install
+
+COPY . .
+
+EXPOSE 8288
+
+CMD ["npx", "inngest-cli@latest", "dev", "-u", "http://app:3000/api/inngest", "--host", "0.0.0.0", "--port", "8288"]
