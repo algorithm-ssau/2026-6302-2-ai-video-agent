@@ -47,6 +47,8 @@ RUN npm install && npm exec -- remotion browser ensure
 
 COPY . .
 
+RUN npm run build
+
 EXPOSE 3000
 
-CMD ["dumb-init", "npm", "run", "dev", "--", "--hostname", "0.0.0.0", "--port", "3000"]
+CMD ["dumb-init", "npm", "start", "--", "--hostname", "0.0.0.0", "--port", "3000"]
