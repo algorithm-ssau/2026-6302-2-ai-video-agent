@@ -2,6 +2,9 @@ FROM node:20-bookworm-slim
 
 WORKDIR /app
 
+# Limit FFmpeg threads to avoid OOM on small hosts
+ENV FFMPEG_THREADS=4
+
 COPY package*.json ./
 
 # Remotion renderer needs system libs for headless Chrome.
