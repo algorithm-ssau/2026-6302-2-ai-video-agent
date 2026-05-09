@@ -17,6 +17,7 @@ export async function listVideosForUser(
   options?: { seriesId?: string | null },
 ): Promise<{ videos: VideoListRow[]; error: string | null }> {
   const supabase = supabaseAdmin()
+  // Build the base user-scoped video list before optional series filtering.
   let query = supabase
     .from("videos")
     .select(

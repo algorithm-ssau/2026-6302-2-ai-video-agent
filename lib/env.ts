@@ -4,6 +4,7 @@ export function getDeepgramKey() {
   return key
 }
 
+// Fonada credentials are used by the TTS voice generation helpers.
 export function getFonadaKey() {
   const key = process.env.FONADALABS_API_KEY
   if (!key) throw new Error("Missing env: FONADALABS_API_KEY")
@@ -26,6 +27,7 @@ export function getHuggingFaceKey(): string {
   return key;
 }
 
+// App URL helpers are used when building absolute links outside the browser.
 export function getAppBaseUrl(): string | undefined {
   const configured =
     process.env.NEXT_PUBLIC_APP_URL ||

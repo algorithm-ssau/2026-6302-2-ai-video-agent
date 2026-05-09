@@ -4,6 +4,7 @@ type EnvCheck = {
   required?: boolean;
 };
 
+// Startup validation reports which integration each environment variable belongs to.
 const ENV_CHECKS: EnvCheck[] = [
   { name: "NEXT_PUBLIC_SUPABASE_URL", service: "supabase", required: true },
   { name: "NEXT_PUBLIC_SUPABASE_ANON_KEY", service: "supabase", required: true },

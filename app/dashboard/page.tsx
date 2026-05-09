@@ -236,6 +236,7 @@ export default function DashboardPage() {
 
   return (
     <div className="mx-auto max-w-7xl space-y-8">
+      {/* Dashboard intro and account status messages. */}
       <section className="rounded-3xl border border-slate-200 bg-gradient-to-br from-white via-violet-50 to-amber-50 p-8 shadow-sm">
         <div className="flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
           <div>
@@ -271,6 +272,7 @@ export default function DashboardPage() {
         )}
       </section>
 
+      {/* Series list with loading, empty, and populated states. */}
       <section>
         <div className="mb-5 flex items-center justify-between">
           <div>
@@ -313,6 +315,7 @@ export default function DashboardPage() {
                   : "No platforms selected"
 
               return (
+                /* Series card with preview, status, and actions. */
                 <article
                   key={item.id}
                   className="overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-sm transition hover:-translate-y-0.5 hover:shadow-md"
