@@ -3,7 +3,8 @@ FROM node:20-bookworm-slim
 WORKDIR /app
 
 # Limit FFmpeg threads to avoid OOM on small hosts
-ENV FFMPEG_THREADS=4
+ENV FFMPEG_THREADS=1
+ENV FFMPEG_LOOKAHEAD_THREADS=1
 
 COPY package*.json ./
 
