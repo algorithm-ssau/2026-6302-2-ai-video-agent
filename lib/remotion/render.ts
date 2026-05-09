@@ -70,6 +70,10 @@ export async function renderSeriesMp4(input: RenderInput): Promise<{ outputPath:
     inputProps: props,
     imageFormat: "jpeg",
     audioCodec: "aac",
+    x264Preset: "ultrafast",
+    crf: 28,
+    disallowParallelEncoding: true,
+    offthreadVideoThreads: 1,
     concurrency: 1,
   });
 

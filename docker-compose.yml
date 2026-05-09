@@ -2,9 +2,9 @@ services:
   app:
     build:
       context: .
-      dockerfile: Dockerfile
+      dockerfile: Dockerfile.app
     container_name: ai-video-agent-app
-    command: npm run dev -- --hostname 0.0.0.0 --port 3000
+    command: npm start -- --hostname 0.0.0.0 --port 3000
     env_file:
       - .env.local
     environment:
@@ -12,9 +12,6 @@ services:
       - INNGEST_BASE_URL=http://inngest:8288
     ports:
       - "3000:3000"
-    volumes:
-      - .:/app
-      - /app/node_modules
     restart: unless-stopped
 
   inngest:
