@@ -29,8 +29,9 @@ async function getServeUrl() {
 
 export async function renderSeriesMp4(input: RenderInput): Promise<{ outputPath: string }> {
   const fps = 30;
-  const width = 1080;
-  const height = 1920;
+  // Reduced resolution to save memory on low-RAM hosts (1GB servers)
+  const width = 720;
+  const height = 1280;
   const durationInFrames = Math.ceil(getDurationFromCaptionWords(input.captionsWords) * fps);
 
   const props: VideoCompositionProps = {
@@ -70,27 +71,6 @@ export async function renderSeriesMp4(input: RenderInput): Promise<{ outputPath:
     imageFormat: "jpeg",
     audioCodec: "aac",
     concurrency: 1,
-    ffmpegOverride: ({ args }) => {
-      // Remove memory-hungry parameters and force single-threaded encoding
-      const filtered = args.filter(
-        (arg) =>
-          !arg.includes("threads=") &&
-          !arg.includes("lookahead_threads=") &&
-          !arg.includes("ref=") &&
-          !arg.includes("bframes=") &&
-          !arg.includes("crf=")
-      );
-      // Add single-threaded, low-memory encoding options
-      return [
-        ...filtered,
-        "-threads",
-        "1",
-        "-preset",
-        "ultrafast",
-        "-crf",
-        "28",
-      ];
-    },
   });
 
   return { outputPath };
