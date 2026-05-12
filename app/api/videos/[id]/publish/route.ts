@@ -140,6 +140,18 @@ export async function POST(_: Request, context: RouteContext) {
         ? firstFailure.error
         : "Unknown publish error"
 
+    if (success && videoRow.series_id) {
+      const { error: updateError } = await supabase
+        .from("video_agent_series")
+        .update({ published_at: new Date().toISOString() })
+        .eq("id", videoRow.series_id)
+        .eq("user_id", userId)
+
+      if (updateError) {
+        console.error("Failed to update series published_at:", updateError)
+      }
+    }
+
     return NextResponse.json({
       ok: success,
       total: communities.length,

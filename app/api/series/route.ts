@@ -3,6 +3,30 @@ import { NextResponse } from "next/server"
 
 import { supabaseAdmin } from "@/lib/supabase/admin"
 import { isValidSeriesPayload } from "@/lib/series"
+import { inngest } from "@/lib/inngest-client"
+
+function normalizePublishTime(value: string, timezoneOffsetMinutes?: number) {
+  const trimmed = value.trim()
+  if (!trimmed) return ""
+
+  const match = trimmed.match(/^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2})/)
+  if (match) {
+    const [, year, month, day, hour, minute] = match
+    const utcMs =
+      Date.UTC(
+        Number(year),
+        Number(month) - 1,
+        Number(day),
+        Number(hour),
+        Number(minute),
+      ) + (Number.isFinite(timezoneOffsetMinutes) ? Number(timezoneOffsetMinutes) * 60_000 : 0)
+    return new Date(utcMs).toISOString()
+  }
+
+  const date = new Date(trimmed)
+  if (Number.isNaN(date.getTime())) return ""
+  return date.toISOString()
+}
 
 export async function GET() {
   try {
@@ -51,6 +75,14 @@ export async function POST(request: Request) {
     const seriesName = normalizedPayload.seriesName.trim()
     const customNiche = normalizedPayload.customNiche.trim()
     const publishTime = normalizedPayload.publishTime.trim()
+    const timezoneOffsetMinutes =
+      body &&
+      typeof body === "object" &&
+      "timezoneOffsetMinutes" in body &&
+      Number.isFinite(Number((body as Record<string, unknown>).timezoneOffsetMinutes))
+        ? Number((body as Record<string, unknown>).timezoneOffsetMinutes)
+        : undefined
+    const publishTimeUtc = normalizePublishTime(publishTime, timezoneOffsetMinutes)
 
     if (!seriesName) {
       return NextResponse.json(
@@ -59,7 +91,7 @@ export async function POST(request: Request) {
       )
     }
 
-    if (!publishTime) {
+    if (!publishTimeUtc) {
       return NextResponse.json(
         { error: "Publish time is required" },
         { status: 400 },
@@ -105,6 +137,7 @@ export async function POST(request: Request) {
     const selectedBGMeta = Array.isArray(normalizedPayload.selectedBGMeta)
       ? normalizedPayload.selectedBGMeta
       : []
+    const payloadForSave = { ...normalizedPayload, publishTime: publishTimeUtc }
 
     const { data, error } = await supabase
       .from("video_agent_series")
@@ -123,9 +156,9 @@ export async function POST(request: Request) {
         series_name: seriesName,
         duration: normalizedPayload.duration,
         selected_platforms: normalizedPayload.selectedPlatforms,
-        publish_time: publishTime,
-        status: "active",
-        step_payload: normalizedPayload,
+        publish_time: publishTimeUtc,
+        status: "processing",
+        step_payload: payloadForSave,
       })
       .select("id")
       .single()
@@ -133,6 +166,19 @@ export async function POST(request: Request) {
     if (error) {
       console.error("Failed to create series:", error)
       return NextResponse.json({ error: error.message }, { status: 500 })
+    }
+
+    try {
+      await inngest.send({
+        name: "video/generate",
+        data: {
+          seriesId: String(data.id),
+          userId,
+          runPublishAfterGeneration: false,
+        },
+      })
+    } catch (triggerError) {
+      console.error("Failed to trigger generation after series create:", triggerError)
     }
 
     return NextResponse.json({ ok: true, id: data.id })

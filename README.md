@@ -1,31 +1,77 @@
 # 2026-6302-2-ai-video-agent
-AI-агент для генерации видео и публикации в VK сообщества (VK Video/VK Clips).
-## Текущее состояние
-- Публикация оставлена только в VK.
-- Поддерживается несколько VK сообществ на одного пользователя.
-- Есть ручная публикация готового видео кнопкой `Опубликовать` в `Dashboard -> Videos`.
-- Реализована полноценная загрузка видео в VK (не просто ссылка): `video.save` -> upload -> `wall.post` c `attachments=video...`.
-- Обновлен Docker-режим для локального запуска приложения и Inngest.
+AI-агент для генерации коротких видео и публикации в VK сообщества (VK Video/VK Clips).
+
+## Демо
+- Деплой: http://viaduct.proxy.rlwy.net:55563
+
+## Что делает продукт
+- Создает видео по сценариям: текст, озвучка, изображения, субтитры, рендер.
+- Хранит результаты в Supabase и показывает статус генерации.
+- Публикует в VK сообщества вручную или по расписанию.
+- Поддерживает несколько VK сообществ на одного пользователя.
+
+## Скриншоты
+
+![Dashboard](public/screenshots/dashboard.png)
+_Скриншот 1 — Dashboard: статусы генерации, список серий и быстрые действия._
+
+![Create](public/screenshots/create.png)
+_Скриншот 2 — Create: настройка серии, сценария, расписания и параметров генерации._
+
+![Settings](public/screenshots/settings.png)
+_Скриншот 3 — Settings: подключение VK сообществ и управление токенами._
+
+![Videos](public/screenshots/video.jpg)
+_Скриншот 4 — Videos: библиотека рендеров, предпросмотр и ручная публикация._
+
+
+
+## Как это работает (коротко)
+1. Пользователь настраивает серию и сохраняет.
+2. Запускается пайплайн генерации (Inngest): сценарий → озвучка → субтитры → изображения → рендер MP4.
+3. Результат сохраняется в Supabase (`videos`, `video_agent_series`).
+4. Публикация:
+   - вручную кнопкой `Опубликовать` в `Dashboard -> Videos`,
+   - или автоматически по `publish_time` (cron Inngest).
+
+## Архитектура
+```mermaid
+flowchart LR
+  UI[Next.js UI] --> API[Next.js API Routes]
+  API --> SB[(Supabase DB/Storage)]
+  API --> INN[Inngest Functions]
+  INN --> AI[LLM/TTS/ASR/Image]
+  INN --> REM[Remotion Render]
+  INN --> VK[VK API]
+```
+
+**Ключевые компоненты**
+- Frontend: Next.js (App Router) + React + TypeScript.
+- Backend: API Routes + Inngest фоновые задачи.
+- Хранилище: Supabase (БД + Storage).
+- Рендер: Remotion (MP4).
+- Интеграция VK: `video.save` → upload → `wall.post`.
 
 ## Стек
-- Next.js (App Router), React и TypeScript
-- Supabase (БД + storage)
-- Inngest (фоновые пайплайны)
+- Next.js (App Router), React, TypeScript
+- Supabase (DB + Storage)
+- Inngest (фоновые пайплайны и cron)
 - Remotion (рендер MP4)
 - Clerk (auth)
+- VK API
 
-## Ключевые части проекта
-- `app/api/videos/[id]/publish/route.ts` - ручная публикация видео в активные VK сообщества.
-- `lib/inngest.ts` - генерация и автопубликация после рендера (VK-only).
-- `lib/social/vk.ts` - VK API интеграция: `video.save`, upload, `wall.post`.
-- `app/dashboard/settings/page.tsx` - управление VK сообществами и токенами.
-- `app/dashboard/videos/videos-client.tsx` - кнопка ручной публикации и вывод результата.
-- `app/api/social/connections/*` - CRUD для настроек VK сообществ.
-- `supabase/migrations/*vk_communities*.sql` - схема таблицы VK сообществ.
+## Структура проекта (ключевые файлы)
+- `app/api/videos/[id]/publish/route.ts` — ручная публикация в VK сообщества.
+- `lib/inngest.ts` — генерация видео + автопубликация по расписанию.
+- `lib/social/vk.ts` — VK API интеграция: `video.save`, upload, `wall.post`.
+- `app/dashboard/settings/page.tsx` — управление VK сообществами и токенами.
+- `app/dashboard/videos/videos-client.tsx` — UI для ручной публикации.
+- `app/api/social/connections/*` — CRUD настроек VK сообществ.
+- `supabase/migrations/*` — схемы БД и миграции.
 
-## Запуск
+## Быстрый старт
 ### Вариант 1: Docker Compose (рекомендуется)
-1. Скопируйте переменные:
+1. Скопируйте переменные окружения:
 ```bash
 cp .env.example .env.local
 ```
@@ -35,12 +81,12 @@ cp .env.example .env.local
 docker compose up --build
 ```
 4. Откройте:
-- App: [http://localhost:3000](http://localhost:3000)
-- Inngest UI: [http://localhost:8288](http://localhost:8288)
+- App: `http://localhost:3000`
+- Inngest UI: `http://localhost:8288`
 
 Если есть `ECONNREFUSED`/`Failed to register` для Inngest:
 - проверьте, что сервис `inngest` запущен;
-- перезапустите: `docker compose down && docker compose up --build`;
+- перезапустите `docker compose down` и затем `docker compose up --build`;
 - убедитесь, что заданы `INNGEST_DEV` и `INNGEST_BASE_URL=http://inngest:8288`.
 
 ### Вариант 2: Локально без Docker
@@ -50,34 +96,28 @@ npm run dev
 npx inngest-cli@latest dev
 ```
 
-## Важный шаг после обновлений БД
-После pull новых изменений примените миграции Supabase, включая добавление `user_access_token`:
-- `supabase/migrations/20260508_create_vk_communities.sql`
-- `supabase/migrations/20260508_add_user_access_token_to_vk_communities.sql`
-
 ## Настройка публикации в VK сообщества
 В `Settings` добавьте сообщество через `Add community` и заполните:
-- `Community ID` - ID сообщества (число, без `club`/`public`);
-- `Community name` - опционально;
-- `Community token (for wall access)` - токен сообщества;
-- `User access token (required for video upload)` - пользовательский токен администратора сообщества.
+- `Community ID` — ID сообщества (число, без `club`/`public`).
+- `Community name` — опционально.
+- `Community token (for wall access)` — токен сообщества.
+- `User access token (required for video upload)` — пользовательский токен администратора сообщества.
 
-Почему нужны два токена:
-- `User access token` используется для `video.save` и загрузки файла видео в VK.
+**Почему нужны два токена:**
+- `User access token` используется для `video.save` и загрузки видео.
 - `Community token` используется для публикации поста от имени сообщества (`wall.post`, `from_group=1`).
 
-Без `user access token` загрузка embedded-видео невозможна.
+## Публикация по расписанию
+1. У серии должен быть установлен `publish_time`.
+2. Видео должно иметь статус `rendered` и `video_url`.
+3. Cron Inngest проверяет серии и публикует в VK, затем выставляет `published_at`.
 
-## Как работает публикация
-1. Видео рендерится и получает `video_url`.
-2. При ручной публикации (`Опубликовать`) система проходит по всем `Active` VK сообществам.
-3. Для каждого сообщества:
-   - вызывает `video.save` (с `group_id`);
-   - отправляет mp4 на `upload_url`;
-   - публикует пост с вложением `video{owner_id}_{video_id}`.
-4. В UI показывается итог: сколько сообществ успешно опубликовано и первая ошибка при фейле.
+## Участники и вклад
+Вклад распределен примерно равномерно, при этом чуть больший вклад:
+- **Роман Хафизов** — основная логика пайплайнов генерации, интеграция VK, суппорт прод-потока.
+- **Илья Халитов** — архитектура, интеграции и UI, оркестрация процессов.
+- **Рафаэль Бурганов** — фронтенд и UX, экран настроек и управление сообществами.
+- **Станислав Мрясов** — инфраструктура, миграции, тестирование и стабилизация.
+- **Кирилл Кудряшов** — UI, сборка и качество пользовательского потока.
 
-## Ограничения и заметки
-- Сейчас канал публикации только VK.
-- Для публикации требуется статус видео `rendered` и наличие `video_url`.
-- Токены в интерфейсе отображаются только в маскированном виде.
+---

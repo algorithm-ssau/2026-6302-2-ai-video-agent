@@ -425,3 +425,95 @@ export const generateVideo = inngest.createFunction(
     };
   }
 );
+
+export const publishScheduledSeries = inngest.createFunction(
+  {
+    id: "publish-scheduled-series",
+    name: "Publish Scheduled Series",
+    triggers: [{ cron: "*/5 * * * *" }],
+  },
+  async () => {
+    const supabase = supabaseAdmin();
+    const nowIso = new Date().toISOString();
+
+    const { data: seriesRows, error } = await supabase
+      .from("video_agent_series")
+      .select("id, user_id, publish_time, published_at, step_payload")
+      .lte("publish_time", nowIso)
+      .not("publish_time", "is", null)
+      .is("published_at", null);
+
+    if (error) {
+      throw new Error(`Failed to load scheduled series: ${error.message}`);
+    }
+
+    const candidates = Array.isArray(seriesRows) ? seriesRows : [];
+    let publishedCount = 0;
+
+    for (const series of candidates) {
+      const payload =
+        series?.step_payload && typeof series.step_payload === "object"
+          ? (series.step_payload as Record<string, unknown>)
+          : {};
+
+      if (payload.isPaused === true) {
+        continue;
+      }
+
+      const { data: videos, error: videoError } = await supabase
+        .from("videos")
+        .select("id, video_url, status, created_at")
+        .eq("series_id", series.id)
+        .eq("status", "rendered")
+        .order("created_at", { ascending: false })
+        .limit(1);
+
+      if (videoError) {
+        console.error("Failed to load rendered video for series:", videoError);
+        continue;
+      }
+
+      const videoRow = Array.isArray(videos) && videos.length > 0 ? videos[0] : null;
+      const videoUrl = videoRow && typeof videoRow.video_url === "string" ? videoRow.video_url : "";
+
+      if (!videoRow || !videoUrl) {
+        continue;
+      }
+
+      try {
+        const result = await dispatchSeriesPlatforms({
+          seriesId: String(series.id),
+          userId: String(series.user_id),
+          selectedPlatforms: ["vk"],
+          videoId: String(videoRow.id),
+          videoUrl,
+        });
+
+        const vkResult =
+          result && typeof result === "object" && "vk" in result
+            ? (result as { vk?: { success?: boolean } }).vk
+            : undefined;
+        const wasPublished = vkResult?.success === true;
+
+        if (!wasPublished) {
+          continue;
+        }
+
+        const { error: updateError } = await supabase
+          .from("video_agent_series")
+          .update({ published_at: nowIso })
+          .eq("id", series.id);
+
+        if (updateError) {
+          console.error("Failed to set published_at on series:", updateError);
+        } else {
+          publishedCount += 1;
+        }
+      } catch (publishError) {
+        console.error("Failed to publish scheduled series:", publishError);
+      }
+    }
+
+    return { processed: candidates.length, published: publishedCount };
+  }
+);

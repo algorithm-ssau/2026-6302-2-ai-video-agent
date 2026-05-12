@@ -20,7 +20,7 @@ const CONNECTIONS_API_URL = "/api/social/connections"
 const DELETE_ACCOUNT_API_URL = "/api/account"
 const DELETE_CONFIRM_TEXT = "DELETE"
 
-function getErrorMessage(error: unknown, fallback = "Unknown error"): string {
+function getErrorMessage(error: unknown, fallback = "Неизвестная ошибка"): string {
   return error instanceof Error ? error.message : fallback
 }
 
@@ -61,7 +61,7 @@ function SettingsPageContent() {
         const res = await fetch(CONNECTIONS_API_URL)
         if (!res.ok) {
           const body = await res.json().catch(() => ({}))
-          throw new Error(body.error || "Failed to load connections")
+          throw new Error(body.error || "Не удалось загрузить подключения")
         }
         const body = (await res.json()) as { connections?: VkCommunityConnection[] }
         setConnections(Array.isArray(body.connections) ? body.connections : [])
@@ -79,7 +79,7 @@ function SettingsPageContent() {
     const res = await fetch(CONNECTIONS_API_URL)
     const body = await res.json().catch(() => ({}))
     if (!res.ok) {
-      throw new Error(body.error || "Failed to load connections")
+      throw new Error(body.error || "Не удалось загрузить подключения")
     }
     setConnections(Array.isArray(body.connections) ? body.connections : [])
   }
@@ -101,7 +101,7 @@ function SettingsPageContent() {
       })
       const body = await res.json().catch(() => ({}))
       if (!res.ok) {
-        throw new Error(body.error || "Failed to save community")
+        throw new Error(body.error || "Не удалось сохранить сообщество")
       }
       setCommunityId("")
       setCommunityName("")
@@ -109,7 +109,7 @@ function SettingsPageContent() {
       setUserAccessToken("")
       await reloadConnections()
     } catch (err) {
-      setError(getErrorMessage(err, "Failed to add community"))
+      setError(getErrorMessage(err, "Не удалось добавить сообщество"))
     } finally {
       setIsSaving(false)
     }
@@ -151,12 +151,12 @@ function SettingsPageContent() {
       })
       const body = await res.json().catch(() => ({}))
       if (!res.ok) {
-        throw new Error(body.error || "Failed to update community")
+        throw new Error(body.error || "Не удалось обновить сообщество")
       }
       cancelEdit()
       await reloadConnections()
     } catch (err) {
-      setError(getErrorMessage(err, "Failed to update community"))
+      setError(getErrorMessage(err, "Не удалось обновить сообщество"))
     } finally {
       setIsMutatingId(null)
     }
@@ -174,11 +174,11 @@ function SettingsPageContent() {
       })
       const body = await res.json().catch(() => ({}))
       if (!res.ok) {
-        throw new Error(body.error || "Failed to update status")
+        throw new Error(body.error || "Не удалось обновить статус")
       }
       await reloadConnections()
     } catch (err) {
-      setError(getErrorMessage(err, "Failed to update status"))
+      setError(getErrorMessage(err, "Не удалось обновить статус"))
     } finally {
       setIsMutatingId(null)
     }
@@ -194,14 +194,14 @@ function SettingsPageContent() {
       })
       const body = await res.json().catch(() => ({}))
       if (!res.ok) {
-        throw new Error(body.error || "Failed to delete community")
+        throw new Error(body.error || "Не удалось удалить сообщество")
       }
       if (editingId === id) {
         cancelEdit()
       }
       await reloadConnections()
     } catch (err) {
-      setError(getErrorMessage(err, "Failed to delete community"))
+      setError(getErrorMessage(err, "Не удалось удалить сообщество"))
     } finally {
       setIsMutatingId(null)
     }
@@ -209,7 +209,7 @@ function SettingsPageContent() {
 
   async function onDeleteAccount() {
     const confirmText = window.prompt(
-      'Type "DELETE" to remove your account and all related data permanently.',
+      'Введите "DELETE", чтобы безвозвратно удалить аккаунт и все связанные данные.',
     )
     if (confirmText !== DELETE_CONFIRM_TEXT) return
 
@@ -219,7 +219,7 @@ function SettingsPageContent() {
       const res = await fetch(DELETE_ACCOUNT_API_URL, { method: "DELETE" })
       if (!res.ok) {
         const body = await res.json().catch(() => ({}))
-        throw new Error(body.error || "Failed to delete account")
+        throw new Error(body.error || "Не удалось удалить аккаунт")
       }
       await signOut({ redirectUrl: "/" })
       router.push("/")
@@ -233,9 +233,9 @@ function SettingsPageContent() {
   return (
     <div className="mx-auto max-w-5xl space-y-8">
       <section className="rounded-3xl border border-slate-200 bg-white p-8 shadow-sm">
-        <h1 className="text-3xl font-bold text-slate-900">Settings</h1>
+        <h1 className="text-3xl font-bold text-slate-900">Настройки</h1>
         <p className="mt-2 text-slate-600">
-          Connect social accounts and manage account-level actions.
+          Подключайте социальные аккаунты и управляйте действиями на уровне учетной записи.
         </p>
 
         {status === "success" && message && (
@@ -256,37 +256,37 @@ function SettingsPageContent() {
       </section>
 
       <section className="rounded-3xl border border-slate-200 bg-white p-8 shadow-sm">
-        <h2 className="text-2xl font-semibold text-slate-900">VK Communities</h2>
+        <h2 className="text-2xl font-semibold text-slate-900">Сообщества ВК</h2>
         <p className="mt-1 text-sm text-slate-500">
-          Add one or more VK communities. Generated videos will be published to all active communities.
+          Добавьте одно или несколько сообществ ВК. Сгенерированные видео будут опубликованы во всех активных сообществах.
         </p>
 
         <div className="mt-6 rounded-2xl border border-slate-200 bg-slate-50 p-5">
-          <h3 className="text-lg font-semibold text-slate-900">Add community</h3>
+          <h3 className="text-lg font-semibold text-slate-900">Добавить сообщество</h3>
           <div className="mt-4 grid gap-3 md:grid-cols-2">
             <input
               value={communityId}
               onChange={(event) => setCommunityId(event.target.value)}
               className="rounded-xl border border-slate-300 px-3 py-2 text-sm"
-              placeholder="Community ID (e.g. 123456)"
+              placeholder="ID сообщества (например, 123456)"
             />
             <input
               value={communityName}
               onChange={(event) => setCommunityName(event.target.value)}
               className="rounded-xl border border-slate-300 px-3 py-2 text-sm"
-              placeholder="Community name (optional)"
+              placeholder="Название сообщества (необязательно)"
             />
             <input
               value={accessToken}
               onChange={(event) => setAccessToken(event.target.value)}
               className="rounded-xl border border-slate-300 px-3 py-2 text-sm"
-              placeholder="Community token (for wall access)"
+              placeholder="Токен сообщества (для доступа к стене)"
             />
             <input
               value={userAccessToken}
               onChange={(event) => setUserAccessToken(event.target.value)}
               className="rounded-xl border border-slate-300 px-3 py-2 text-sm md:col-span-2"
-              placeholder="User access token (required for video upload)"
+              placeholder="Токен пользователя (требуется для загрузки видео)"
             />
           </div>
           <button
@@ -295,7 +295,7 @@ function SettingsPageContent() {
             disabled={isSaving}
             className="mt-4 inline-flex items-center justify-center rounded-xl bg-slate-900 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-slate-800 disabled:cursor-not-allowed disabled:bg-slate-400"
           >
-            {isSaving ? "Saving..." : "Add community"}
+            {isSaving ? "Сохранение..." : "Добавить сообщество"}
           </button>
         </div>
 
@@ -312,22 +312,21 @@ function SettingsPageContent() {
                 <div className="flex flex-wrap items-center justify-between gap-3">
                   <div>
                     <h3 className="text-lg font-semibold text-slate-900">
-                      {current.communityName || `Community #${current.communityId}`}
+                      {current.communityName || `Сообщество #${current.communityId}`}
                     </h3>
                     <p className="text-sm text-slate-600">ID: {current.communityId}</p>
                     <p className="text-sm text-slate-600">
-                      Token: {current.tokenMasked || "hidden"}
+                      Токен: {current.tokenMasked || "скрыт"}
                     </p>
                     <p className="text-sm text-slate-600">
-                      User token: {current.userTokenMasked || "not set"}
+                      Токен пользователя: {current.userTokenMasked || "не задан"}
                     </p>
                   </div>
                   <span
-                    className={`inline-flex rounded-full px-3 py-1 text-xs font-semibold ${
-                      current.isActive ? "bg-emerald-100 text-emerald-700" : "bg-slate-200 text-slate-700"
-                    }`}
+                    className={`inline-flex rounded-full px-3 py-1 text-xs font-semibold ${current.isActive ? "bg-emerald-100 text-emerald-700" : "bg-slate-200 text-slate-700"
+                      }`}
                   >
-                    {current.isActive ? "Active" : "Disabled"}
+                    {current.isActive ? "Активно" : "Отключено"}
                   </span>
                 </div>
 
@@ -337,19 +336,19 @@ function SettingsPageContent() {
                       value={editingCommunityName}
                       onChange={(event) => setEditingCommunityName(event.target.value)}
                       className="rounded-xl border border-slate-300 px-3 py-2 text-sm"
-                      placeholder="Community name"
+                      placeholder="Название сообщества"
                     />
                     <input
                       value={editingAccessToken}
                       onChange={(event) => setEditingAccessToken(event.target.value)}
                       className="rounded-xl border border-slate-300 px-3 py-2 text-sm"
-                      placeholder="New community token (optional)"
+                      placeholder="Новый токен сообщества (необязательно)"
                     />
                     <input
                       value={editingUserAccessToken}
                       onChange={(event) => setEditingUserAccessToken(event.target.value)}
                       className="rounded-xl border border-slate-300 px-3 py-2 text-sm md:col-span-2"
-                      placeholder="New user access token (optional)"
+                      placeholder="Новый токен пользователя (необязательно)"
                     />
                     <div className="flex gap-2 md:col-span-2">
                       <button
@@ -358,14 +357,14 @@ function SettingsPageContent() {
                         disabled={isBusy}
                         className="rounded-xl bg-slate-900 px-4 py-2 text-sm font-semibold text-white disabled:opacity-50"
                       >
-                        Save
+                        Сохранить
                       </button>
                       <button
                         type="button"
                         onClick={cancelEdit}
                         className="rounded-xl border border-slate-300 px-4 py-2 text-sm font-semibold text-slate-700"
                       >
-                        Cancel
+                        Отмена
                       </button>
                     </div>
                   </div>
@@ -377,14 +376,14 @@ function SettingsPageContent() {
                       disabled={isBusy}
                       className="rounded-xl border border-slate-300 px-4 py-2 text-sm font-semibold text-slate-700 disabled:opacity-50"
                     >
-                      {item.isActive ? "Disable" : "Enable"}
+                      {item.isActive ? "Отключить" : "Включить"}
                     </button>
                     <button
                       type="button"
                       onClick={() => beginEdit(item)}
                       className="rounded-xl border border-slate-300 px-4 py-2 text-sm font-semibold text-slate-700"
                     >
-                      Edit
+                      Редактировать
                     </button>
                     <button
                       type="button"
@@ -392,7 +391,7 @@ function SettingsPageContent() {
                       disabled={isBusy}
                       className="rounded-xl bg-red-600 px-4 py-2 text-sm font-semibold text-white disabled:opacity-50"
                     >
-                      Delete
+                      Удалить
                     </button>
                   </div>
                 )}
@@ -401,13 +400,13 @@ function SettingsPageContent() {
           })}
         </div>
 
-        {isLoading && <p className="mt-4 text-sm text-slate-500">Loading connections...</p>}
+        {isLoading && <p className="mt-4 text-sm text-slate-500">Загрузка подключений...</p>}
       </section>
 
       <section className="rounded-3xl border border-red-200 bg-red-50 p-8 shadow-sm">
-        <h2 className="text-2xl font-semibold text-red-800">Danger Zone</h2>
+        <h2 className="text-2xl font-semibold text-red-800">Опасная зона</h2>
         <p className="mt-2 text-sm text-red-700">
-          This permanently deletes your account and associated data.
+          Это действие безвозвратно удаляет ваш аккаунт и все связанные данные.
         </p>
 
         <button
@@ -416,7 +415,7 @@ function SettingsPageContent() {
           disabled={isDeleting}
           className="mt-5 inline-flex items-center justify-center rounded-xl bg-red-600 px-5 py-3 font-semibold text-white transition hover:bg-red-500 disabled:cursor-not-allowed disabled:bg-red-300"
         >
-          {isDeleting ? "Deleting account..." : "Delete account"}
+          {isDeleting ? "Удаление аккаунта..." : "Удалить аккаунт"}
         </button>
       </section>
     </div>

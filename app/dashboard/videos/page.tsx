@@ -28,13 +28,13 @@ export default async function VideosPage({ searchParams }: VideosPageProps) {
   if (error) {
     return (
       <div className="mx-auto max-w-4xl rounded-3xl border border-slate-200 bg-white p-8 shadow-sm">
-        <h1 className="text-3xl font-bold text-slate-900">Generated videos</h1>
+        <h1 className="text-3xl font-bold text-slate-900">Сгенерированные видео</h1>
         <p className="mt-4 text-red-600">{error}</p>
         <Link
           href="/dashboard"
           className="mt-6 inline-block text-violet-600 underline hover:text-violet-500"
         >
-          Back to dashboard
+          Назад к сериям
         </Link>
       </div>
     )

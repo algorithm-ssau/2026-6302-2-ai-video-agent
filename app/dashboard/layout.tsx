@@ -8,11 +8,11 @@ import { UserButton } from "@clerk/nextjs"
 type NavIconName = "series" | "videos" | "guides" | "billing" | "settings"
 
 const NAV_ITEMS: Array<{ href: string; label: string; icon: NavIconName }> = [
-  { href: "/dashboard", label: "Series", icon: "series" },
-  { href: "/dashboard/videos", label: "Videos", icon: "videos" },
-  { href: "#", label: "Guides", icon: "guides" },
-  { href: "#", label: "Billing", icon: "billing" },
-  { href: "/dashboard/settings", label: "Settings", icon: "settings" },
+  { href: "/dashboard", label: "Серии", icon: "series" },
+  { href: "/dashboard/videos", label: "Видео", icon: "videos" },
+  { href: "#", label: "Гайды", icon: "guides" },
+  { href: "#", label: "Оплата", icon: "billing" },
+  { href: "/dashboard/settings", label: "Настройки", icon: "settings" },
 ]
 
 const Icon = ({ name }: { name: NavIconName }) => {
@@ -65,15 +65,15 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     <div className="min-h-screen flex bg-gray-50 text-slate-900">
       <aside className="w-72 border-r border-gray-200 bg-white flex flex-col">
         <div className="px-6 py-5 flex items-center gap-3 border-b border-gray-100">
-          <Image src="/logo.png" alt="logo" width={36} height={36} loading="eager" className="rounded-md" />
+          <Image src="/logo.png" alt="логотип" width={36} height={36} loading="eager" className="rounded-md" />
           <div>
-            <div className="font-bold text-lg">VidMaxx</div>
-            <div className="text-xs text-slate-500">Creator Studio</div>
+            <div className="font-bold text-lg">ShortsGen</div>
+            <div className="text-xs text-slate-500">Студия создания коротких видео</div>
           </div>
         </div>
 
         <div className="px-4 py-4">
-          <Link href="/dashboard/create" className="block w-full rounded-md bg-purple-600 py-2 text-center font-semibold text-white hover:bg-purple-500">+ Create new series</Link>
+          <Link href="/dashboard/create" className="block w-full rounded-md bg-purple-600 py-2 text-center font-semibold text-white hover:bg-purple-500">+ Создать новую серию</Link>
         </div>
 
         <nav className="flex-1 px-2 py-4">
@@ -91,13 +91,13 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
 
         <div className="px-4 py-4 border-t border-gray-100">
           <Link href="#" className="flex items-center justify-between w-full bg-amber-500/10 hover:bg-amber-500/5 text-amber-700 font-medium py-2 px-3 rounded-md">
-            <span>Upgrade</span>
+            <span>Обновить</span>
             <span className="text-xs font-semibold bg-amber-500 text-white rounded px-2 py-0.5">Pro</span>
           </Link>
 
           <Link href="#" className="mt-3 flex items-center text-sm text-slate-600 hover:text-slate-900">
-            <Image src="/logo.png" alt="user" width={28} height={28} loading="eager" className="rounded-full mr-3" />
-            <span>Profile settings</span>
+            <Image src="/logo.png" alt="аватар пользователя" width={28} height={28} loading="eager" className="rounded-full mr-3" />
+            <span>Настройки профиля</span>
           </Link>
         </div>
       </aside>
@@ -105,8 +105,8 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
       <div className="flex-1 min-h-screen">
         <header className="h-16 flex items-center justify-between px-6 border-b border-gray-200 bg-white">
           <div className="flex items-center gap-4">
-            <h2 className="text-xl font-semibold">Dashboard</h2>
-            <div className="text-sm text-slate-500">Overview & recent activity</div>
+            <h2 className="text-xl font-semibold">Панель управления</h2>
+            <div className="text-sm text-slate-500">Обзор и недавняя активность</div>
           </div>
           <div className="flex items-center gap-4">
             <UserButton />
