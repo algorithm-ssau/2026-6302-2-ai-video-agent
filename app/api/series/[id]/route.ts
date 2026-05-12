@@ -153,10 +153,19 @@ export async function PATCH(request: Request, context: RouteContext) {
     return NextResponse.json({ error: "Invalid payload" }, { status: 400 })
   }
 
+  function normalizePublishTime(value: string) {
+    const trimmed = value.trim()
+    if (!trimmed) return ""
+    const date = new Date(trimmed)
+    if (Number.isNaN(date.getTime())) return ""
+    return date.toISOString()
+  }
+
   const normalizedPayload = { ...body, selectedPlatforms: ["vk"] as const }
   const seriesName = normalizedPayload.seriesName.trim()
   const customNiche = normalizedPayload.customNiche.trim()
   const publishTime = normalizedPayload.publishTime.trim()
+  const publishTimeUtc = normalizePublishTime(publishTime)
 
   if (!seriesName) {
     return NextResponse.json(
@@ -165,7 +174,7 @@ export async function PATCH(request: Request, context: RouteContext) {
     )
   }
 
-  if (!publishTime) {
+  if (!publishTimeUtc) {
     return NextResponse.json(
       { error: "Publish time is required" },
       { status: 400 },
@@ -210,6 +219,7 @@ export async function PATCH(request: Request, context: RouteContext) {
   const selectedBGMeta = Array.isArray(normalizedPayload.selectedBGMeta)
     ? normalizedPayload.selectedBGMeta
     : []
+  const payloadForSave = { ...normalizedPayload, publishTime: publishTimeUtc }
 
   const { data, error } = await supabase
     .from("video_agent_series")
@@ -227,8 +237,10 @@ export async function PATCH(request: Request, context: RouteContext) {
       series_name: seriesName,
       duration: normalizedPayload.duration,
       selected_platforms: normalizedPayload.selectedPlatforms,
-      publish_time: publishTime,
-      step_payload: normalizedPayload,
+      publish_time: publishTimeUtc,
+      published_at: null,
+      status: "processing",
+      step_payload: payloadForSave,
     })
     .eq("id", id)
     .eq("user_id", userId)
@@ -238,6 +250,19 @@ export async function PATCH(request: Request, context: RouteContext) {
   if (error) {
     console.error("Failed to update series:", error)
     return NextResponse.json({ error: error.message }, { status: 500 })
+  }
+
+  try {
+    await inngest.send({
+      name: "video/generate",
+      data: {
+        seriesId: String(data.id),
+        userId,
+        runPublishAfterGeneration: false,
+      },
+    })
+  } catch (triggerError) {
+    console.error("Failed to trigger generation after series update:", triggerError)
   }
 
   return NextResponse.json({ ok: true, id: data.id })
