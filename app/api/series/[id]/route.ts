@@ -153,9 +153,24 @@ export async function PATCH(request: Request, context: RouteContext) {
     return NextResponse.json({ error: "Invalid payload" }, { status: 400 })
   }
 
-  function normalizePublishTime(value: string) {
+  function normalizePublishTime(value: string, timezoneOffsetMinutes?: number) {
     const trimmed = value.trim()
     if (!trimmed) return ""
+
+    const match = trimmed.match(/^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2})/)
+    if (match) {
+      const [, year, month, day, hour, minute] = match
+      const utcMs =
+        Date.UTC(
+          Number(year),
+          Number(month) - 1,
+          Number(day),
+          Number(hour),
+          Number(minute),
+        ) + (Number.isFinite(timezoneOffsetMinutes) ? Number(timezoneOffsetMinutes) * 60_000 : 0)
+      return new Date(utcMs).toISOString()
+    }
+
     const date = new Date(trimmed)
     if (Number.isNaN(date.getTime())) return ""
     return date.toISOString()
@@ -165,7 +180,14 @@ export async function PATCH(request: Request, context: RouteContext) {
   const seriesName = normalizedPayload.seriesName.trim()
   const customNiche = normalizedPayload.customNiche.trim()
   const publishTime = normalizedPayload.publishTime.trim()
-  const publishTimeUtc = normalizePublishTime(publishTime)
+  const timezoneOffsetMinutes =
+    body &&
+    typeof body === "object" &&
+    "timezoneOffsetMinutes" in body &&
+    Number.isFinite(Number((body as Record<string, unknown>).timezoneOffsetMinutes))
+      ? Number((body as Record<string, unknown>).timezoneOffsetMinutes)
+      : undefined
+  const publishTimeUtc = normalizePublishTime(publishTime, timezoneOffsetMinutes)
 
   if (!seriesName) {
     return NextResponse.json(

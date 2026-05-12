@@ -5,9 +5,9 @@ import Image from "next/image"
 import { useRouter, useSearchParams } from "next/navigation"
 import CaptionStyle from "../../../components/ui/caption-style"
 import WizardFooter from "../../../components/ui/wizard-footer"
-import { Language, DeepgramVoices, FonadalabVoices } from "../../../lib/voiceData"
-import { MusicTracks } from "../../../lib/musicData"
-import type { SeriesPayload } from "../../../lib/series"
+import { Language, DeepgramVoices, FonadalabVoices } from "@/lib/voiceData"
+import { MusicTracks } from "@/lib/musicData"
+import type { SeriesPayload } from "@/lib/series"
 
 const AVAILABLE_NICHES = [
   { id: "scary", title: "Страшные истории", desc: "Короткие жуткие истории, которые привлекают зрителей." },
@@ -307,6 +307,7 @@ function CreateSeriesPageContent() {
           duration,
           selectedPlatforms,
           publishTime,
+          timezoneOffsetMinutes: new Date().getTimezoneOffset(),
         }),
       })
 
