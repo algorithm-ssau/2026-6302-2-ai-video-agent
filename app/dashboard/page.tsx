@@ -24,6 +24,14 @@ import {
 } from "@/components/ui/dropdown-menu"
 import { getSeriesStyleThumbnail } from "@/lib/series"
 
+const ACTION_LABELS: Record<string, string> = {
+  pause: "приостановить",
+  resume: "возобновить",
+  trigger: "выполнить генерацию",
+  "execute-workflow": "выполнить рабочий процесс",
+  delete: "удалить",
+}
+
 type SeriesRecord = {
   id: number
   series_name: string
@@ -38,35 +46,35 @@ type SeriesRecord = {
   } | null
 }
 
-const createdAtFormatter = new Intl.DateTimeFormat("en-US", {
+const createdAtFormatter = new Intl.DateTimeFormat("ru-RU", {
   dateStyle: "medium",
   timeStyle: "short",
   timeZone: "UTC",
 })
 
 function getDisplayStatus(series: SeriesRecord) {
-  if (series.step_payload?.isPaused) return "Paused"
-  if (series.status === "active") return "Active"
-  if (series.status === "processing") return "Processing"
-  if (series.status === "completed") return "Completed"
-  if (series.status === "failed") return "Failed"
-  if (series.status === "cancelled") return "Cancelled"
-  return "Active"
+  if (series.step_payload?.isPaused) return "Приостановлено"
+  if (series.status === "active") return "Активно"
+  if (series.status === "processing") return "Обработка"
+  if (series.status === "completed") return "Завершено"
+  if (series.status === "failed") return "Ошибка"
+  if (series.status === "cancelled") return "Отменено"
+  return "Активно"
 }
 
 function getStatusClasses(status: string) {
   switch (status) {
-    case "Paused":
+    case "Приостановлено":
       return "bg-amber-100 text-amber-800"
-    case "Processing":
+    case "Обработка":
       return "bg-blue-100 text-blue-700"
-    case "Active":
+    case "Активно":
       return "bg-emerald-100 text-emerald-700"
-    case "Completed":
+    case "Завершено":
       return "bg-teal-100 text-teal-700"
-    case "Failed":
+    case "Ошибка":
       return "bg-red-100 text-red-700"
-    case "Cancelled":
+    case "Отменено":
       return "bg-slate-200 text-slate-700"
     default:
       return "bg-violet-100 text-violet-700"
@@ -92,15 +100,15 @@ export default function DashboardPage() {
           method: "POST",
         })
 
-        if (!res.ok) {
-          const data = await res.json().catch(() => ({}))
-          throw new Error(data.error || "Failed to sync user")
-        }
+         if (!res.ok) {
+           const data = await res.json().catch(() => ({}))
+           throw new Error(data.error || "Не удалось синхронизировать пользователя")
+         }
 
         setSynced(true)
-      } catch (err) {
-        setSyncError(err instanceof Error ? err.message : "Unknown error")
-      }
+       } catch (err) {
+         setSyncError(err instanceof Error ? err.message : "Неизвестная ошибка")
+       }
     }
 
     void run()
@@ -118,18 +126,18 @@ export default function DashboardPage() {
           method: "GET",
         })
 
-        if (!res.ok) {
-          const data = await res.json().catch(() => ({}))
-          throw new Error(data.error || "Failed to load series")
-        }
+         if (!res.ok) {
+           const data = await res.json().catch(() => ({}))
+           throw new Error(data.error || "Не удалось загрузить серии")
+         }
 
         const data = await res.json()
         setSeries(Array.isArray(data.series) ? data.series : [])
-      } catch (err) {
-        setSeriesError(err instanceof Error ? err.message : "Unknown error")
-      } finally {
-        setIsLoadingSeries(false)
-      }
+       } catch (err) {
+         setSeriesError(err instanceof Error ? err.message : "Неизвестная ошибка")
+       } finally {
+         setIsLoadingSeries(false)
+       }
     }
 
     void loadSeries()
@@ -143,7 +151,7 @@ export default function DashboardPage() {
 
     const confirmed =
       action !== "delete" ||
-      window.confirm("Delete this series? This action cannot be undone.")
+      window.confirm("Удалить эту серию? Это действие нельзя отменить.")
 
     if (!confirmed) return
 
@@ -162,10 +170,11 @@ export default function DashboardPage() {
         body: action === "delete" ? undefined : JSON.stringify({ action }),
       })
 
-      if (!res.ok) {
-        const data = await res.json().catch(() => ({}))
-        throw new Error(data.error || `Failed to ${action} series`)
-      }
+       if (!res.ok) {
+         const data = await res.json().catch(() => ({}))
+         const actionLabel = ACTION_LABELS[action] || action
+         throw new Error(data.error || `Не удалось ${actionLabel} серию`)
+       }
 
       if (action === "delete") {
         setSeries((current) => current.filter((item) => item.id !== id))
@@ -211,17 +220,17 @@ export default function DashboardPage() {
       if (action === "trigger" || action === "execute-workflow") {
         router.push(`/dashboard/videos?seriesId=${id}&generating=1`)
       }
-    } catch (err) {
-      setSeriesError(err instanceof Error ? err.message : "Unknown error")
-    } finally {
-      setActionSeriesId(null)
-    }
+      } catch (err) {
+        setSeriesError(err instanceof Error ? err.message : "Неизвестная ошибка")
+      } finally {
+        setActionSeriesId(null)
+      }
   }
 
   if (!isLoaded) {
     return (
       <main className="min-h-screen flex items-center justify-center">
-        <p>Loading...</p>
+        <p>Загрузка...</p>
       </main>
     )
   }
@@ -229,7 +238,7 @@ export default function DashboardPage() {
   if (!user) {
     return (
       <main className="min-h-screen flex items-center justify-center">
-        <p>Sign in to open your dashboard.</p>
+        <p>Войдите, чтобы открыть панель управления.</p>
       </main>
     )
   }
@@ -241,11 +250,11 @@ export default function DashboardPage() {
         <div className="flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
           <div>
             <h1 className="text-4xl font-bold tracking-tight text-slate-900">
-              Your video agent series
+              Ваши серии видео агента
             </h1>
             <p className="mt-2 max-w-2xl text-slate-600">
-              Welcome back, {user.fullName || user.primaryEmailAddress?.emailAddress}.
-              Manage scheduled series, jump into edits, and trigger new generations.
+              С возвращением, {user.fullName || user.primaryEmailAddress?.emailAddress}.
+              Управляйте запланированными сериями, переходите к редактированию и запускайте новые генерации.
             </p>
           </div>
 
@@ -253,18 +262,18 @@ export default function DashboardPage() {
             href="/dashboard/create"
             className="inline-flex items-center justify-center rounded-xl bg-violet-600 px-5 py-3 font-semibold text-white transition hover:bg-violet-500"
           >
-            Create new series
+            Создать новую серию
           </Link>
         </div>
 
         {syncError && (
           <p className="mt-4 text-sm text-red-600">
-            Failed to sync your profile: {syncError}
+            Ошибка синхронизации профиля: {syncError}
           </p>
         )}
         {!syncError && synced && (
           <p className="mt-4 text-sm text-emerald-600">
-            Your profile is synced and series are ready to manage.
+            Профиль синхронизирован, серии готовы к управлению.
           </p>
         )}
         {seriesError && (
@@ -276,30 +285,30 @@ export default function DashboardPage() {
       <section>
         <div className="mb-5 flex items-center justify-between">
           <div>
-            <h2 className="text-2xl font-semibold text-slate-900">Created series</h2>
+            <h2 className="text-2xl font-semibold text-slate-900">Созданные серии</h2>
             <p className="text-sm text-slate-500">
-              {series.length} total series
+              {series.length} всего серий
             </p>
           </div>
         </div>
 
         {isLoadingSeries ? (
           <div className="rounded-2xl border border-dashed border-slate-300 bg-white p-10 text-center text-slate-500">
-            Loading your series...
+            Загрузка ваших серий...
           </div>
         ) : series.length === 0 ? (
           <div className="rounded-2xl border border-dashed border-slate-300 bg-white p-10 text-center">
             <h3 className="text-xl font-semibold text-slate-900">
-              No series created yet
+              Серии еще не созданы
             </h3>
             <p className="mt-2 text-slate-500">
-              Create your first series and it will appear here with management actions.
+              Создайте свою первую серию и она появится здесь с действиями управления.
             </p>
             <Link
               href="/dashboard/create"
               className="mt-5 inline-flex rounded-xl bg-slate-900 px-5 py-3 font-medium text-white transition hover:bg-slate-800"
             >
-              Create first series
+              Создать первую серию
             </Link>
           </div>
         ) : (
@@ -308,11 +317,11 @@ export default function DashboardPage() {
               const displayStatus = getDisplayStatus(item)
               const isPaused = item.step_payload?.isPaused === true
               const isBusy = actionSeriesId === item.id
-              const platforms =
-                Array.isArray(item.selected_platforms) &&
-                item.selected_platforms.length > 0
-                  ? item.selected_platforms.join(", ")
-                  : "No platforms selected"
+               const platforms =
+                 Array.isArray(item.selected_platforms) &&
+                 item.selected_platforms.length > 0
+                   ? item.selected_platforms.join(", ")
+                   : "Платформы не выбраны"
 
               return (
                 /* Series card with preview, status, and actions. */
@@ -341,11 +350,11 @@ export default function DashboardPage() {
                     </div>
 
                     <div className="absolute right-4 top-4 flex items-center gap-2">
-                      <Link
-                        href={`/dashboard/create?seriesId=${item.id}`}
-                        className="inline-flex h-10 w-10 items-center justify-center rounded-full bg-white/90 text-slate-700 shadow-sm backdrop-blur transition hover:bg-white"
-                        aria-label={`Edit ${item.series_name}`}
-                      >
+                       <Link
+                         href={`/dashboard/create?seriesId=${item.id}`}
+                         className="inline-flex h-10 w-10 items-center justify-center rounded-full bg-white/90 text-slate-700 shadow-sm backdrop-blur transition hover:bg-white"
+                         aria-label={`Редактировать ${item.series_name}`}
+                       >
                         <Edit3 className="size-4" />
                       </Link>
 
@@ -354,17 +363,17 @@ export default function DashboardPage() {
                           <button
                             type="button"
                             className="inline-flex h-10 w-10 items-center justify-center rounded-full bg-white/90 text-slate-700 shadow-sm backdrop-blur transition hover:bg-white"
-                            aria-label={`Open options for ${item.series_name}`}
+                            aria-label={`Открыть опции для ${item.series_name}`}
                           >
                             <MoreHorizontal className="size-4" />
                           </button>
                         </DropdownMenuTrigger>
                         <DropdownMenuContent align="end">
                           <DropdownMenuItem asChild>
-                            <Link href={`/dashboard/create?seriesId=${item.id}`}>
-                              <Edit3 className="size-4" />
-                              Edit
-                            </Link>
+                             <Link href={`/dashboard/create?seriesId=${item.id}`}>
+                               <Edit3 className="size-4" />
+                               Редактировать
+                             </Link>
                           </DropdownMenuItem>
                           <DropdownMenuItem
                             onClick={() =>
@@ -380,7 +389,7 @@ export default function DashboardPage() {
                             ) : (
                               <Pause className="size-4" />
                             )}
-                            {isPaused ? "Resume series" : "Pause series"}
+                            {isPaused ? "Возобновить серию" : "Приостановить серию"}
                           </DropdownMenuItem>
                           <DropdownMenuSeparator />
                           <DropdownMenuItem
@@ -389,7 +398,7 @@ export default function DashboardPage() {
                             disabled={isBusy}
                           >
                             <Trash2 className="size-4" />
-                            Delete
+                            Удалить
                           </DropdownMenuItem>
                         </DropdownMenuContent>
                       </DropdownMenu>
@@ -408,11 +417,11 @@ export default function DashboardPage() {
 
                     <div className="space-y-2 text-sm text-slate-600">
                       <p>
-                        <span className="font-medium text-slate-900">Style:</span>{" "}
-                        {item.selected_style || "Not selected"}
+                        <span className="font-medium text-slate-900">Стиль:</span>{" "}
+                        {item.selected_style || "Не выбрано"}
                       </p>
                       <p>
-                        <span className="font-medium text-slate-900">Platforms:</span>{" "}
+                        <span className="font-medium text-slate-900">Платформы:</span>{" "}
                         {platforms}
                       </p>
                     </div>
@@ -423,7 +432,7 @@ export default function DashboardPage() {
                         className="inline-flex items-center justify-center gap-2 rounded-xl border border-slate-200 px-4 py-3 font-medium text-slate-700 transition hover:bg-slate-50"
                       >
                         <Video className="size-4" />
-                        View videos
+                        Просмотреть видео
                       </Link>
                       <button
                         type="button"
@@ -432,7 +441,7 @@ export default function DashboardPage() {
                         className="inline-flex items-center justify-center gap-2 rounded-xl bg-slate-900 px-4 py-3 font-medium text-white transition hover:bg-slate-800 disabled:cursor-not-allowed disabled:bg-slate-300"
                       >
                         <Sparkles className="size-4" />
-                        {isBusy ? "Working..." : "Generate now"}
+                        {isBusy ? "Работаю..." : "Сгенерировать сейчас"}
                       </button>
                     </div>
                     <div>
@@ -444,7 +453,7 @@ export default function DashboardPage() {
                         disabled={isBusy || isPaused}
                         className="inline-flex w-full items-center justify-center rounded-lg border border-slate-200 px-3 py-2 text-xs font-medium text-slate-700 transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-400"
                       >
-                        {isBusy ? "Working..." : "Execute workflow"}
+                        {isBusy ? "Работаю..." : "Выполнить рабочий процесс"}
                       </button>
                     </div>
                   </div>

@@ -10,7 +10,7 @@ type Props = {
   onSelect?: (id: string) => void
 }
 
-export default function CaptionStyle({ id, label, sample = 'This is a sample caption', selected = false, onSelect }: Props) {
+export default function CaptionStyle({ id, label, sample = 'Пример текста субтитров', selected = false, onSelect }: Props) {
   return (
     <button onClick={() => onSelect?.(id)} className={`w-56 p-2 rounded border ${selected ? 'border-purple-600 bg-purple-50' : 'border-gray-100 bg-white'}`}>
       <div className="relative bg-slate-900 rounded h-40 overflow-hidden flex items-end justify-center p-3">

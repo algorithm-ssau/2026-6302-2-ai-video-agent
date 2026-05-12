@@ -8,7 +8,7 @@ import { Loader2 } from "lucide-react"
 
 import type { VideoListRow } from "@/lib/videos-list"
 
-const createdAtFormatter = new Intl.DateTimeFormat("en-US", {
+const createdAtFormatter = new Intl.DateTimeFormat("ru-RU", {
   dateStyle: "medium",
   timeStyle: "short",
   timeZone: "UTC",
@@ -31,6 +31,15 @@ function videoStatusBadge(status: string | null) {
   return "bg-slate-100 text-slate-700"
 }
 
+function getVideoStatusLabel(status: string | null): string {
+  const s = (status || "unknown").toLowerCase()
+  if (s === "rendered") return "Готово"
+  if (s === "generated" || s === "completed") return "Завершено"
+  if (s === "processing" || s === "pending") return "Обработка"
+  if (s === "failed") return "Ошибка"
+  return "Неизвестно"
+}
+
 type SeriesApiRow = {
   id: number
   status: string
@@ -44,15 +53,15 @@ function GeneratingPlaceholderCard({ seriesId }: { seriesId: string }) {
         <div className="absolute left-4 top-4">
           <span className="inline-flex items-center gap-2 rounded-full bg-blue-100 px-3 py-1 text-xs font-semibold text-blue-700">
             <Loader2 className="size-3 animate-spin" />
-            Generating
+            Генерация
           </span>
         </div>
       </div>
       <div className="space-y-3 p-5">
         <div className="h-5 w-3/4 animate-pulse rounded bg-slate-200" />
-        <p className="text-sm text-slate-500">Creating your video now…</p>
+        <p className="text-sm text-slate-500">Создание вашего видео…</p>
         <p className="text-sm text-slate-600">
-          <span className="font-medium text-slate-900">Series:</span> #{seriesId}
+          <span className="font-medium text-slate-900">Серия:</span> #{seriesId}
         </p>
         <div className="h-4 w-1/2 animate-pulse rounded bg-slate-200" />
       </div>
@@ -96,12 +105,12 @@ export function VideosClient({
       const res = await fetch(`/api/videos${qs}`)
       const data = await res.json().catch(() => ({}))
       if (!res.ok) {
-        throw new Error(data.error || "Failed to load videos")
+        throw new Error(data.error || "Не удалось загрузить видео")
       }
       setVideos(Array.isArray(data.videos) ? data.videos : [])
-    } catch (e) {
-      setListError(e instanceof Error ? e.message : "Unknown error")
-    }
+      } catch (e) {
+        setListError(e instanceof Error ? e.message : "Неизвестная ошибка")
+      }
   }, [seriesId])
 
   useEffect(() => {
@@ -114,12 +123,12 @@ export function VideosClient({
     const tick = async () => {
       if (startedAtRef.current != null) {
         if (Date.now() - startedAtRef.current > MAX_WAIT_MS) {
-          setGeneratingTimedOut(true)
-          setGeneratingBanner(false)
-          setPollNote(
-            "Generation is taking longer than expected, or it may have failed. Check the Series page for status.",
-          )
-          return true
+           setGeneratingTimedOut(true)
+           setGeneratingBanner(false)
+           setPollNote(
+             "Генерация занимает больше времени, чем ожидалось, или она могла завершиться с ошибкой. Проверьте статус на странице серии.",
+           )
+           return true
         }
       }
 
@@ -127,14 +136,14 @@ export function VideosClient({
         const res = await fetch(`/api/series/${seriesId}`)
         const data = await res.json().catch(() => ({}))
         if (!res.ok) {
-          setPollNote(data.error || "Could not check generation status.")
+          setPollNote(data.error || "Не удалось проверить статус генерации.")
           return true
         }
-        const series = data.series as SeriesApiRow | undefined
-        if (!series) {
-          setPollNote("Series not found.")
-          return true
-        }
+         const series = data.series as SeriesApiRow | undefined
+         if (!series) {
+           setPollNote("Серия не найдена.")
+           return true
+         }
         if (series.status !== "processing") {
           setGeneratingBanner(false)
           setPollNote(null)
@@ -147,7 +156,7 @@ export function VideosClient({
           return true
         }
       } catch {
-        setPollNote("Could not check generation status.")
+        setPollNote("Не удалось проверить статус генерации.")
       }
       return false
     }
@@ -186,7 +195,7 @@ export function VideosClient({
         communities?: Array<{ success?: boolean; error?: string; communityName?: string | null; communityId?: number | null }>
       }
       if (!res.ok) {
-        throw new Error(data.error || "Failed to publish video")
+        throw new Error(data.error || "Не удалось опубликовать видео")
       }
 
       const total = typeof data.total === "number" ? data.total : 0
@@ -203,17 +212,17 @@ export function VideosClient({
         firstFailedCommunity && (firstFailedCommunity.communityName || firstFailedCommunity.communityId)
           ? String(firstFailedCommunity.communityName || firstFailedCommunity.communityId)
           : null
-      setPublishNotes((prev) => ({
-        ...prev,
-        [videoId]:
-          failures > 0
-            ? `Published to ${successCount}/${total} communities${firstFailureMessage ? `. First error${failureTarget ? ` (${failureTarget})` : ""}: ${firstFailureMessage}` : ""}`
-            : (data.message || `Published to ${successCount}/${total} communities`),
-      }))
+       setPublishNotes((prev) => ({
+         ...prev,
+         [videoId]:
+           failures > 0
+             ? `Опубликовано в ${successCount}/${total} сообществ${firstFailureMessage ? `. Первая ошибка${failureTarget ? ` (${failureTarget})` : ""}: ${firstFailureMessage}` : ""}`
+             : (data.message || `Опубликовано в ${successCount}/${total} сообществ`),
+       }))
     } catch (error) {
       setPublishNotes((prev) => ({
         ...prev,
-        [videoId]: error instanceof Error ? error.message : "Failed to publish",
+        [videoId]: error instanceof Error ? error.message : "Не удалось опубликовать"
       }))
     } finally {
       setPublishingVideoId(null)
@@ -226,12 +235,12 @@ export function VideosClient({
         <div className="flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
           <div>
             <h1 className="text-4xl font-bold tracking-tight text-slate-900">
-              Generated videos
+              Сгенерированные видео
             </h1>
             <p className="mt-2 max-w-2xl text-slate-600">
               {seriesId
-                ? `Showing videos for series #${seriesId}.`
-                : "All videos created from your series."}
+                ? `Показаны видео для серии #${seriesId}.`
+                : "Все видео, созданные из ваших серий."}
             </p>
           </div>
           <div className="flex flex-wrap gap-3">
@@ -240,14 +249,14 @@ export function VideosClient({
                 href="/dashboard/videos"
                 className="inline-flex items-center justify-center rounded-xl border border-slate-200 bg-white px-5 py-3 font-semibold text-slate-700 transition hover:bg-slate-50"
               >
-                Show all videos
+                Показать все видео
               </Link>
             ) : null}
             <Link
               href="/dashboard"
               className="inline-flex items-center justify-center rounded-xl bg-violet-600 px-5 py-3 font-semibold text-white transition hover:bg-violet-500"
             >
-              Back to series
+              Назад к сериям
             </Link>
           </div>
         </div>
@@ -260,7 +269,7 @@ export function VideosClient({
           >
             <Loader2 className="size-5 shrink-0 animate-spin" />
             <p className="text-sm font-medium">
-              Generating video for this series… This can take several minutes.
+              Генерация видео для этой серии… Это может занять несколько минут.
             </p>
           </div>
         ) : null}
@@ -276,23 +285,20 @@ export function VideosClient({
 
       <section>
         <h2 className="mb-5 text-2xl font-semibold text-slate-900">
-          {videos.length + (generatingBanner && seriesId ? 1 : 0)} video
-          {videos.length + (generatingBanner && seriesId ? 1 : 0) === 1
-            ? ""
-            : "s"}
+          {videos.length + (generatingBanner && seriesId ? 1 : 0)} видео
         </h2>
 
         {videos.length === 0 && !(generatingBanner && seriesId) ? (
           <div className="rounded-2xl border border-dashed border-slate-300 bg-white p-10 text-center">
-            <h3 className="text-xl font-semibold text-slate-900">No videos yet</h3>
+            <h3 className="text-xl font-semibold text-slate-900">Видео пока нет</h3>
             <p className="mt-2 text-slate-500">
-              Generate a video from a series to see it listed here.
+              Сгенерируйте видео из серии, чтобы оно отобразилось здесь.
             </p>
             <Link
               href="/dashboard"
               className="mt-5 inline-flex rounded-xl bg-slate-900 px-5 py-3 font-medium text-white transition hover:bg-slate-800"
             >
-              Go to series
+              Перейти к сериям
             </Link>
           </div>
         ) : (
@@ -305,7 +311,7 @@ export function VideosClient({
               const created = v.created_at
                 ? createdAtFormatter.format(new Date(v.created_at))
                 : "—"
-              const title = v.title?.trim() || "Untitled"
+               const title = v.title?.trim() || "Без названия"
               const sid = v.series_id != null ? String(v.series_id) : "—"
               const videoUrl = typeof v.video_url === "string" ? v.video_url : null
               const status = (v.status || "").toLowerCase()
@@ -333,34 +339,34 @@ export function VideosClient({
                       />
                     )}
                     <div className="absolute left-4 top-4">
-                      <span
-                        className={`inline-flex rounded-full px-3 py-1 text-xs font-semibold ${videoStatusBadge(v.status)}`}
-                      >
-                        {v.status || "Unknown"}
-                      </span>
+                       <span
+                         className={`inline-flex rounded-full px-3 py-1 text-xs font-semibold ${videoStatusBadge(v.status)}`}
+                       >
+                         {getVideoStatusLabel(v.status)}
+                       </span>
                     </div>
                   </div>
                   <div className="space-y-2 p-5">
-                    <h3 className="line-clamp-2 text-lg font-semibold text-slate-900">
-                      {title}
-                    </h3>
-                    <p className="text-sm text-slate-500">Created {created}</p>
-                    <p className="text-sm text-slate-600">
-                      <span className="font-medium text-slate-900">Series:</span>{" "}
+                     <h3 className="line-clamp-2 text-lg font-semibold text-slate-900">
+                       {title}
+                     </h3>
+                     <p className="text-sm text-slate-500">Создано {created}</p>
+                     <p className="text-sm text-slate-600">
+                       <span className="font-medium text-slate-900">Серия:</span>{" "}
                       #{sid}
                     </p>
                     <div className="flex flex-wrap gap-3 text-sm text-slate-600">
                       {v.duration_seconds != null ? (
                         <span>
                           <span className="font-medium text-slate-900">
-                            Duration:
+                            Длительность:
                           </span>{" "}
                           {v.duration_seconds}s
                         </span>
                       ) : null}
                       {v.scene_count != null ? (
                         <span>
-                          <span className="font-medium text-slate-900">Scenes:</span>{" "}
+                          <span className="font-medium text-slate-900">Сцены:</span>{" "}
                           {v.scene_count}
                         </span>
                       ) : null}
@@ -374,7 +380,7 @@ export function VideosClient({
                             rel="noreferrer"
                             className="inline-flex items-center rounded-lg bg-slate-900 px-3 py-2 text-sm font-semibold text-white hover:bg-slate-800"
                           >
-                            Open MP4
+                            Открыть MP4
                           </a>
                           {canPublish ? (
                             <button
@@ -383,7 +389,7 @@ export function VideosClient({
                               disabled={isPublishing}
                               className="inline-flex items-center rounded-lg border border-slate-300 px-3 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-50"
                             >
-                              {isPublishing ? "Publishing..." : "Publish"}
+                              {isPublishing ? "Публикация…" : "Опубликовать"}
                             </button>
                           ) : null}
                         </div>
@@ -392,7 +398,7 @@ export function VideosClient({
                         ) : null}
                       </div>
                     ) : (
-                      <p className="pt-2 text-sm text-slate-500">MP4 is being rendered...</p>
+                      <p className="pt-2 text-sm text-slate-500">MP4 рендерится…</p>
                     )}
                   </div>
                 </article>
