@@ -10,11 +10,11 @@ import { MusicTracks } from "../../../lib/musicData"
 import type { SeriesPayload } from "../../../lib/series"
 
 const AVAILABLE_NICHES = [
-  { id: "scary", title: "Scary Stories", desc: "Short creepy tales that hook viewers." },
-  { id: "motiv", title: "Motivational", desc: "Punchy motivational short clips." },
-  { id: "tech", title: "Tech Tips", desc: "Quick tips and hacks for techies." },
-  { id: "history", title: "Tiny History", desc: "Bite-sized historical facts." },
-  { id: "funny", title: "Humor Skits", desc: "Short comedy sketches and gags." },
+  { id: "scary", title: "Страшные истории", desc: "Короткие жуткие истории, которые привлекают зрителей." },
+  { id: "motiv", title: "Мотивационные", desc: "Короткие мотивационные видеоролики." },
+  { id: "tech", title: "Техно-советы", desc: "Быстрые советы и лайфхаки для технарей." },
+  { id: "history", title: "Крошечная история", desc: "Короткие исторические факты." },
+  { id: "funny", title: "Юмористические скетчи", desc: "Короткие комедийные скетчи и шутки." },
 ]
 
 function NicheIcon({ id }: { id: string }) {
@@ -75,7 +75,7 @@ function Stepper({ step }: { step: number }) {
       </div>
       <div className="mt-3 flex justify-between text-xs text-slate-500">
         {Array.from({ length: total }).map((_, i) => (
-          <div key={i} className="w-1/6 text-center">Step {i + 1}</div>
+          <div key={i} className="w-1/6 text-center">Шаг {i + 1}</div>
         ))}
       </div>
     </div>
@@ -111,10 +111,10 @@ function NicheSelection({
   return (
     <div className="bg-white rounded-md border border-gray-200 p-6 shadow-sm">
       <div className="mb-4 flex items-center justify-between">
-        <h3 className="text-lg font-semibold">Select Niche</h3>
+        <h3 className="text-lg font-semibold">Выберите нишу</h3>
         <div className="flex items-center gap-2">
-          <button onClick={() => setNicheType('available')} className={`px-3 py-1 rounded ${nicheType==='available' ? 'bg-purple-600 text-white' : 'bg-gray-100'}`}>Available Niche</button>
-          <button onClick={() => setNicheType('custom')} className={`px-3 py-1 rounded ${nicheType==='custom' ? 'bg-purple-600 text-white' : 'bg-gray-100'}`}>Custom Niche</button>
+          <button onClick={() => setNicheType('available')} className={`px-3 py-1 rounded ${nicheType === 'available' ? 'bg-purple-600 text-white' : 'bg-gray-100'}`}>Готовая ниша</button>
+          <button onClick={() => setNicheType('custom')} className={`px-3 py-1 rounded ${nicheType === 'custom' ? 'bg-purple-600 text-white' : 'bg-gray-100'}`}>Своя ниша</button>
         </div>
       </div>
 
@@ -122,7 +122,7 @@ function NicheSelection({
         <div>
           <div className="h-64 overflow-auto border border-gray-100 rounded p-3 grid gap-3">
             {AVAILABLE_NICHES.map(n => (
-              <button key={n.id} onClick={() => setSelectedNiche(n.id)} className={`text-left p-3 rounded-md border ${selectedNiche===n.id ? 'border-purple-600 bg-purple-50' : 'border-gray-100 bg-white'} flex items-start` }>
+              <button key={n.id} onClick={() => setSelectedNiche(n.id)} className={`text-left p-3 rounded-md border ${selectedNiche === n.id ? 'border-purple-600 bg-purple-50' : 'border-gray-100 bg-white'} flex items-start`}>
                 <NicheIcon id={n.id} />
                 <div className="flex-1">
                   <div className="font-medium text-base">{n.title}</div>
@@ -136,8 +136,8 @@ function NicheSelection({
 
       {nicheType === 'custom' && (
         <div className="border border-dashed border-gray-200 rounded p-6 text-slate-600">
-          <p>Enter your custom niche below</p>
-          <input value={customNiche} onChange={(e) => setCustomNiche(e.target.value)} className="mt-3 w-full border rounded px-3 py-2" placeholder="e.g. Niche name" />
+          <p>Введите свою нишу ниже</p>
+          <input value={customNiche} onChange={(e) => setCustomNiche(e.target.value)} className="mt-3 w-full border rounded px-3 py-2" placeholder="например, Название ниши" />
         </div>
       )}
     </div>
@@ -151,11 +151,11 @@ function CreateSeriesPageContent() {
   const isEditMode = Boolean(seriesId)
   const [step, setStep] = useState(1)
 
-  const [nicheType, setNicheType] = useState<'available'|'custom'>('available')
+  const [nicheType, setNicheType] = useState<'available' | 'custom'>('available')
   const [selectedNiche, setSelectedNiche] = useState<string | null>(null)
   const [customNiche, setCustomNiche] = useState<string>("")
 
-  // placeholder for other steps state
+  // состояние для остальных шагов
   const [language, setLanguage] = useState<string | null>(null)
   const [voice, setVoice] = useState<string | null>(null)
   const [languageModel, setLanguageModel] = useState<string | null>(null)
@@ -183,31 +183,31 @@ function CreateSeriesPageContent() {
 
         if (!res.ok) {
           const data = await res.json().catch(() => ({}))
-          throw new Error(data.error || "Failed to load series")
+          throw new Error(data.error || "Не удалось загрузить серию")
         }
 
         const data = await res.json()
         const series = data.series as
           | ({
-              niche_type?: string | null
-              selected_niche?: string | null
-              custom_niche?: string | null
-              language?: string | null
-              language_model?: string | null
-              voice?: string | null
-              selected_bg?: string[] | null
-              selected_style?: string | null
-              selected_caption_style?: string | null
-              series_name?: string | null
-              duration?: string | null
-              selected_platforms?: string[] | null
-              publish_time?: string | null
-              step_payload?: Partial<SeriesPayload> | null
-            })
+            niche_type?: string | null
+            selected_niche?: string | null
+            custom_niche?: string | null
+            language?: string | null
+            language_model?: string | null
+            voice?: string | null
+            selected_bg?: string[] | null
+            selected_style?: string | null
+            selected_caption_style?: string | null
+            series_name?: string | null
+            duration?: string | null
+            selected_platforms?: string[] | null
+            publish_time?: string | null
+            step_payload?: Partial<SeriesPayload> | null
+          })
           | null
 
         if (!series) {
-          throw new Error("Series not found")
+          throw new Error("Серия не найдена")
         }
 
         const payload = series.step_payload ?? {}
@@ -237,7 +237,7 @@ function CreateSeriesPageContent() {
         )
       } catch (error) {
         setScheduleError(
-          error instanceof Error ? error.message : "Failed to load series",
+          error instanceof Error ? error.message : "Не удалось загрузить серию",
         )
       } finally {
         setIsLoadingExistingSeries(false)
@@ -262,7 +262,7 @@ function CreateSeriesPageContent() {
       a.src = src
       void a.play()
     } catch {
-      // ignore
+      // игнорируем
     }
   }
 
@@ -312,14 +312,14 @@ function CreateSeriesPageContent() {
 
       if (!res.ok) {
         const data = await res.json().catch(() => ({}))
-        throw new Error(data.error || "Failed to schedule series")
+        throw new Error(data.error || "Не удалось запланировать серию")
       }
 
       router.push("/dashboard")
       router.refresh()
     } catch (error) {
       setScheduleError(
-        error instanceof Error ? error.message : "Failed to schedule series",
+        error instanceof Error ? error.message : "Не удалось запланировать серию",
       )
     } finally {
       setIsScheduling(false)
@@ -346,11 +346,11 @@ function CreateSeriesPageContent() {
         <Stepper step={step} />
 
         <div className="mb-4">
-          <h1 className="text-2xl font-bold">{isEditMode ? "Edit Series" : "Create Series"}</h1>
+          <h1 className="text-2xl font-bold">{isEditMode ? "Редактировать серию" : "Создать серию"}</h1>
           <p className="text-sm text-slate-500">
             {isLoadingExistingSeries
-              ? "Loading existing series..."
-              : `Step ${step} of ${total} — pick niche to start`}
+              ? "Загрузка существующей серии..."
+              : `Шаг ${step} из ${total} — выберите нишу для начала`}
           </p>
         </div>
 
@@ -369,7 +369,7 @@ function CreateSeriesPageContent() {
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div>
               <div className="bg-white rounded-md border border-gray-200 p-4">
-                <h3 className="font-semibold mb-3">Choose Language</h3>
+                <h3 className="font-semibold mb-3">Выберите язык</h3>
                 <div className="grid grid-cols-2 gap-3">
                   {Language.map((L) => (
                     <button key={L.modelLangCode} onClick={() => { setLanguage(L.language); setLanguageModel(L.modelName); setVoice(null) }} className={`flex items-center gap-3 p-3 rounded border ${language === L.language ? 'border-purple-600 bg-purple-50' : 'border-gray-100 bg-white'}`}>
@@ -386,7 +386,7 @@ function CreateSeriesPageContent() {
 
             <div>
               <div className="bg-white rounded-md border border-gray-200 p-4">
-                <h3 className="font-semibold mb-3">Voices ({languageModel || 'select language'})</h3>
+                <h3 className="font-semibold mb-3">Голоса ({languageModel || 'выберите язык'})</h3>
                 <div className="h-64 overflow-auto grid gap-3">
                   {(!languageModel ? [] : (languageModel === 'deepgram' ? DeepgramVoices : FonadalabVoices)).map((v) => (
                     <div key={v.modelName} className={`p-3 rounded border flex items-center justify-between ${voice === v.modelName ? 'border-purple-600 bg-purple-50' : 'border-gray-100 bg-white'}`}>
@@ -394,15 +394,15 @@ function CreateSeriesPageContent() {
                         <div className="w-10 h-10 rounded-full bg-gray-100 flex items-center justify-center mr-3 text-sm font-medium">{v.modelName.charAt(0).toUpperCase()}</div>
                         <div>
                           <div className="font-medium">{v.modelName}</div>
-                          <div className="text-xs text-slate-500">Model: {v.model} • Gender: {v.gender}</div>
+                          <div className="text-xs text-slate-500">Модель: {v.model} • Пол: {v.gender}</div>
                         </div>
                       </div>
 
                       <div className="flex items-center gap-3">
-                        <button onClick={() => togglePreview(`/voice/${v.preview}`)} className="px-3 py-1 rounded bg-gray-100 hover:bg-gray-200 text-sm">Preview</button>
+                        <button onClick={() => togglePreview(`/voice/${v.preview}`)} className="px-3 py-1 rounded bg-gray-100 hover:bg-gray-200 text-sm">Прослушать</button>
 
                         <button onClick={() => setVoice(v.modelName)} className={`px-3 py-1 rounded text-sm ${voice === v.modelName ? 'bg-purple-600 text-white' : 'bg-gray-100 hover:bg-gray-200'}`}>
-                          {voice === v.modelName ? 'Selected' : 'Select'}
+                          {voice === v.modelName ? 'Выбрано' : 'Выбрать'}
                         </button>
                       </div>
                     </div>
@@ -415,8 +415,8 @@ function CreateSeriesPageContent() {
 
         {step === 3 && (
           <div className="bg-white rounded-md border border-gray-200 p-4">
-            <h3 className="font-semibold mb-3">Background Music</h3>
-            <p className="text-sm text-slate-500 mb-4">Select one or more background tracks. Use preview to listen.</p>
+            <h3 className="font-semibold mb-3">Фоновая музыка</h3>
+            <p className="text-sm text-slate-500 mb-4">Выберите один или несколько фоновых треков. Используйте предпросмотр для прослушивания.</p>
 
             <div className="h-64 overflow-auto grid gap-3">
               {MusicTracks.map((t) => (
@@ -427,12 +427,12 @@ function CreateSeriesPageContent() {
                   </div>
 
                   <div className="flex items-center gap-3">
-                    <button onClick={() => togglePreview(t.url)} className="px-3 py-1 rounded bg-gray-100 hover:bg-gray-200 text-sm">Preview</button>
+                    <button onClick={() => togglePreview(t.url)} className="px-3 py-1 rounded bg-gray-100 hover:bg-gray-200 text-sm">Прослушать</button>
 
                     <button onClick={() => {
                       setSelectedBG(prev => prev.includes(t.id) ? prev.filter(x => x !== t.id) : [...prev, t.id])
                     }} className={`px-3 py-1 rounded text-sm ${selectedBG.includes(t.id) ? 'bg-purple-600 text-white' : 'bg-gray-100 hover:bg-gray-200'}`}>
-                      {selectedBG.includes(t.id) ? 'Selected' : 'Select'}
+                      {selectedBG.includes(t.id) ? 'Выбрано' : 'Выбрать'}
                     </button>
                   </div>
                 </div>
@@ -441,40 +441,40 @@ function CreateSeriesPageContent() {
           </div>
         )}
 
-        {step > 3 && step !== 5 && step !==6 && (
-          <div className="bg-white border rounded p-6 text-slate-600">Placeholder for step {step}</div>
+        {step > 3 && step !== 5 && step !== 6 && (
+          <div className="bg-white border rounded p-6 text-slate-600">Заглушка для шага {step}</div>
         )}
 
         {step === 6 && (
           <div className="bg-white rounded-md border border-gray-200 p-4">
-            <h3 className="font-semibold mb-3">Series Details & Schedule</h3>
+            <h3 className="font-semibold mb-3">Детали серии и расписание</h3>
 
             <div className="grid gap-4">
               <div>
-                <label className="block text-sm font-medium mb-1">Series Name</label>
-                <input value={seriesName} onChange={(e)=>setSeriesName(e.target.value)} className="w-full border rounded px-3 py-2" placeholder="Enter series name" />
+                <label className="block text-sm font-medium mb-1">Название серии</label>
+                <input value={seriesName} onChange={(e) => setSeriesName(e.target.value)} className="w-full border rounded px-3 py-2" placeholder="Введите название серии" />
               </div>
 
               <div>
-                <label className="block text-sm font-medium mb-1">Video duration</label>
-                <select value={duration} onChange={(e)=>setDuration(e.target.value)} className="w-56 border rounded px-3 py-2">
-                  <option value="30-50">30-50 sec</option>
-                  <option value="60-70">60-70 sec</option>
+                <label className="block text-sm font-medium mb-1">Длительность видео</label>
+                <select value={duration} onChange={(e) => setDuration(e.target.value)} className="w-56 border rounded px-3 py-2">
+                  <option value="30-50">30-50 сек</option>
+                  <option value="60-70">60-70 сек</option>
                 </select>
               </div>
 
               <div>
-                <label className="block text-sm font-medium mb-2">Publishing</label>
+                <label className="block text-sm font-medium mb-2">Публикация</label>
                 <div className="rounded border border-gray-200 bg-gray-50 px-3 py-2 text-sm text-slate-700">
-                  VK Clips
+                  Клипы ВК
                 </div>
-                <p className="text-xs text-slate-500 mt-2">Connect VK in Settings to publish clips.</p>
+                <p className="text-xs text-slate-500 mt-2">Подключите ВК в настройках, чтобы публиковать клипы.</p>
               </div>
 
               <div>
-                <label className="block text-sm font-medium mb-1">Publish time</label>
-                <input type="datetime-local" value={publishTime} onChange={(e)=>setPublishTime(e.target.value)} className="w-64 border rounded px-3 py-2" />
-                <p className="text-xs text-slate-500 mt-2">Video will generate 3-6 hours before video publish</p>
+                <label className="block text-sm font-medium mb-1">Время публикации</label>
+                <input type="datetime-local" value={publishTime} onChange={(e) => setPublishTime(e.target.value)} className="w-64 border rounded px-3 py-2" />
+                <p className="text-xs text-slate-500 mt-2">Видео будет сгенерировано за 3-6 часов до публикации</p>
               </div>
 
               {scheduleError && (
@@ -489,11 +489,11 @@ function CreateSeriesPageContent() {
                 >
                   {isScheduling
                     ? isEditMode
-                      ? "Saving..."
-                      : "Scheduling..."
+                      ? "Сохранение..."
+                      : "Планирование..."
                     : isEditMode
-                      ? "Save changes"
-                      : "Schedule"}
+                      ? "Сохранить изменения"
+                      : "Запланировать"}
                 </button>
               </div>
             </div>
@@ -501,8 +501,8 @@ function CreateSeriesPageContent() {
         )}
         {step === 4 && (
           <div className="bg-white rounded-md border border-gray-200 p-4">
-            <h3 className="font-semibold mb-3">Video Style</h3>
-            <p className="text-sm text-slate-500 mb-4">Choose one visual style for the generated video (9:16 portrait).</p>
+            <h3 className="font-semibold mb-3">Стиль видео</h3>
+            <p className="text-sm text-slate-500 mb-4">Выберите один визуальный стиль для генерируемого видео (9:16 портрет).</p>
 
             <div className="overflow-x-auto">
               <div className="flex gap-4 pb-4">
@@ -532,20 +532,20 @@ function CreateSeriesPageContent() {
 
         {step === 5 && (
           <div className="bg-white rounded-md border border-gray-200 p-4">
-            <h3 className="font-semibold mb-3">Caption Style</h3>
-            <p className="text-sm text-slate-500 mb-4">Choose one animated caption style. This component is reusable and will be used in Remotion rendering.</p>
+            <h3 className="font-semibold mb-3">Стиль субтитров</h3>
+            <p className="text-sm text-slate-500 mb-4">Выберите один анимированный стиль субтитров. Этот компонент будет использоваться при рендеринге в Remotion.</p>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
               {[
-                { id: 'fade-up', label: 'Fade Up' },
-                { id: 'typewriter', label: 'Typewriter' },
-                { id: 'slide-left', label: 'Slide Left' },
-                { id: 'pulse', label: 'Pulse' },
-                { id: 'bounce', label: 'Bounce' },
-                { id: 'glow', label: 'Glow' },
+                { id: 'fade-up', label: 'Появление' },
+                { id: 'typewriter', label: 'Печатная машинка' },
+                { id: 'slide-left', label: 'Сдвиг влево' },
+                { id: 'pulse', label: 'Пульсация' },
+                { id: 'bounce', label: 'Подпрыгивание' },
+                { id: 'glow', label: 'Свечение' },
               ].map(s => (
                 <div key={s.id}>
-                  <CaptionStyle id={s.id} label={s.label} sample="Sample caption text" selected={selectedCaptionStyle===s.id} onSelect={(id)=> setSelectedCaptionStyle(id)} />
+                  <CaptionStyle id={s.id} label={s.label} sample="Пример текста субтитров" selected={selectedCaptionStyle === s.id} onSelect={(id) => setSelectedCaptionStyle(id)} />
                 </div>
               ))}
             </div>
